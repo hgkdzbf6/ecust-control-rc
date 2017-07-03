@@ -8,7 +8,6 @@
 #include "MyProtocol.h"
 
 
-
 void my_send(int fd
 		,PackageDefine pd
 		,unsigned char pl
@@ -50,19 +49,21 @@ void send_single(int fd,unsigned char c){
 int receive_single(int fd,unsigned char* result){
 	return read_callback(fd,result,1);
 }
+
 //return 0: package is not completed
 //return 1:package is available
-unsigned char my_receive(
+ReceiveState my_receive(
 		int fd,
 		void* buffer,
 		void* data,
+		int* id,
 		unsigned char check){
 	//character store temporally
 	static int status;
 	static ParseStatus flag=PARSE_NOT_START;
 	static unsigned char t;
 	//get package index
-	static unsigned char index;
+	static unsigned char my_index;
 	//get package length
 	static unsigned char len;
 	static unsigned char i=0;
@@ -74,9 +75,11 @@ unsigned char my_receive(
 			crc=254;
 			flag=PARSE_READ_ID;
 		}else if(flag==PARSE_READ_ID){
-			index=t;
+			my_index=t;
 			crc+=t;
 			flag=PARSE_READ_LEN;
+			*id=my_index;
+			return RECEIVE_STATE_GOT_TYPE;
 		}else if(flag==PARSE_READ_LEN){
 			len=t;
 			i=0;
@@ -104,16 +107,37 @@ unsigned char my_receive(
 			//need to check?
 			memcpy(data,buffer,len);
 			status=0;flag=PARSE_NOT_START;t=0;
-			index=0;len=0;i=0;crc=0;
-			return 1;
+			my_index=0;len=0;i=0;crc=0;
+			return RECEIVE_STATE_SUCCESS;
 		}else if(flag==PARSE_FAIL){
 			//need to check?
 			//memcpy(data,buffer,len);
 			memset(data,0,len);
 			status=0;flag=PARSE_NOT_START;t=0;
-			index=0;len=0;i=0;crc=0;
+			my_index=0;len=0;i=0;crc=0;
 		}
 		//printf("%d  %d  %d  %d\n",crc,len,i,t);
 	}
-	return 0;
+	return RECEIVE_STATE_NOT_COMPLETED;
+}
+
+unsigned char getPackageLength(PackageDefine pd){
+	switch(pd){
+	case PACKAGE_DEFINE_STATUS:
+		return SYSTEM_STATE_LENGTH;
+	case PACKAGE_DEFINE_VICON:
+		return VICON_DATA_LENGTH;
+	case PACKAGE_DEFINE_SENSOR:
+		return SENSOR_DATA_LENGTH;
+	case PACKAGE_DEFINE_FUSION:
+		return FUSION_DATA_LENGTH;
+	case PACKAGE_DEFINE_DEBUG:
+		return DEBUG_DATA_LENGTH;
+	case PACKAGE_DEFINE_PARAM:
+		return PARAM_DEBUG_LENGTH;
+	case PACKAGE_DEFINE_CMD:
+		return CMD_DATA_LENGTH;
+	default:
+		return -1;
+	}
 }

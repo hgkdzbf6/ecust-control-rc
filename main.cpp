@@ -18,10 +18,12 @@ SensorData sensorData;
 SystemState systemState;
 FusionData fusionData;
 
-DebugData debugData={0};
+DebugData receiveDebugData={0};
 SqlData sqlData={0};
 ParamDebug sendParamDebug={0};
 ParamDebug receiveParamDebug={0};
+PackageDefine pack_id;
+unsigned char allDataBuffer[256]={0};
 //MyViconData receivedViconData;
 //SensorData receivedSensorData;
 //SystemState receivedSystemState;
@@ -44,7 +46,7 @@ unsigned char pl=VICON_DATA_LENGTH;
 #endif
 
 
-
+CmdData sendCmdData={0};
 unsigned char buffer[255];
 unsigned char mysql_switch=0;
 unsigned char show_flag=1;
@@ -59,13 +61,14 @@ void showReceiveParamDebugOnce();
 void showSendParamDebug();
 void setViconData();
 void setSendParamDebug();
-void showViconData(int pre_timestamp);
+void showDebugData(int pre_timestamp);
 //manual:
 //comming params:
 //it consist of 3 params
 //first is what USB port your device used.
 //second is what vicon segment and subject are your vicon object used.
 //third is the switch of mysql data
+
 int main(int argc, char* argv[]){
 	pthread_t p_send;
 	pthread_t p_receieve;
@@ -242,6 +245,7 @@ void nextMenu(char cmd){
 		printf("param invalid, please retry.\n");
 	}
 }
+
 void* send_thread(void* ha=NULL){
 	while(1){
 		//get vicon data from workstation
@@ -270,18 +274,43 @@ void* receive_thread(void* ha=NULL){
 //			void* buffer,
 //			void* data,
 //			unsigned char check
+	static ReceiveState receive_state=RECEIVE_STATE_NOT_COMPLETED;
 	static int pre_timestamp=0;
 	tcflush(fd,TCIOFLUSH);
 	while(1){
 #ifdef DEBUG_DATA_MODE
-		if(my_receive(fd,buffer,&debugData,1)){
+		receive_state=my_receive(fd,(void*)buffer,
+				(void*)(&allDataBuffer),(int*)(&pack_id),1);
+		if(receive_state==RECEIVE_STATE_SUCCESS){
 			if(mysql_switch!=0){
 				packSqlData();
 				sql->dataIn(&sqlData);
 			}
-
-			showViconData(pre_timestamp);
-			pre_timestamp=debugData.timestamp;
+			switch(pack_id){
+			case PACKAGE_DEFINE_STATUS:
+				break;
+			case PACKAGE_DEFINE_VICON:
+				break;
+			case PACKAGE_DEFINE_SENSOR:
+				break;
+			case PACKAGE_DEFINE_FUSION:
+				break;
+			case PACKAGE_DEFINE_DEBUG:
+				memcpy(&receiveDebugData,allDataBuffer,getPackageLength(pack_id));
+				showDebugData(pre_timestamp);
+				pre_timestamp=receiveDebugData.timestamp;
+				break;
+			case PACKAGE_DEFINE_PARAM:
+				memcpy(&receiveParamDebug,allDataBuffer,getPackageLength(pack_id));
+				showReceiveParamDebugOnce();
+				//setParamDebug();
+				setSendParamDebug();
+				break;
+			case PACKAGE_DEFINE_CMD:
+				break;
+			default:
+				break;
+			}
 #endif
 
 #ifdef PARAM_DEBUG_MODE
@@ -312,12 +341,12 @@ void packSqlData(){
 	sqlData.viconData.vx=viconData.vx;
 	sqlData.viconData.vy=viconData.vy;
 	sqlData.viconData.vz=viconData.vz;
-	sqlData.state.battery=debugData.battery;
-	sqlData.state.cpu_load=debugData.cpu_load;
-	sqlData.state.vicon_count=debugData.vicon_count;
-	sqlData.set_position=debugData.set_position;
-	sqlData.set_velocity=debugData.set_velocity;
-	sqlData.calc_thrust=debugData.calc_thrust;
+	sqlData.state.battery=receiveDebugData.battery;
+	sqlData.state.cpu_load=receiveDebugData.cpu_load;
+	sqlData.state.vicon_count=receiveDebugData.vicon_count;
+	sqlData.set_position=receiveDebugData.set_position;
+	sqlData.set_velocity=receiveDebugData.set_velocity;
+	sqlData.calc_thrust=receiveDebugData.calc_thrust;
 }
 void setParamDebug(){
 	//receiveDebug
@@ -348,24 +377,20 @@ void setSendParamDebug(){
 	//sendParamDebug.thrust;
 	sendParamDebug.calc_thrust=receiveParamDebug.calc_thrust;
 }
-void showViconData(int pre_timestamp){
+void showDebugData(int pre_timestamp){
 	printf("received ok!\n");
-	printf("battery:%d\n",debugData.battery);
-	printf("cpu_load:%d\n",debugData.cpu_load);
-	printf("vicon_count:%d\n",debugData.vicon_count);
-
-
+	printf("battery:%d\n",receiveDebugData.battery);
+	printf("cpu_load:%d\n",receiveDebugData.cpu_load);
+	printf("vicon_count:%d\n",receiveDebugData.vicon_count);
 	printf("timestamp:%d\n",
-			debugData.timestamp);
+			receiveDebugData.timestamp);
 	printf("timestamp:%d\td_timestamp:%d\n",
-				debugData.timestamp
-				,debugData.timestamp-pre_timestamp);
-
-
-	printf("z:%f\tvz:%f\n",debugData.z,debugData.vz);
-	printf("set_p:%f\tset_v:%f\n",debugData.set_position
-			,debugData.set_velocity);
-	printf("thrust:%f\n\n",debugData.calc_thrust);
+				receiveDebugData.timestamp
+				,receiveDebugData.timestamp-pre_timestamp);
+	printf("z:%f\tvz:%f\n",receiveDebugData.z,receiveDebugData.vz);
+	printf("set_p:%f\tset_v:%f\n",receiveDebugData.set_position
+			,receiveDebugData.set_velocity);
+	printf("thrust:%f\n\n",receiveDebugData.calc_thrust);
 }
 void showReceiveParamDebugOnce(){
 	do{

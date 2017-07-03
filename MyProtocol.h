@@ -43,6 +43,7 @@ typedef struct __my_debug_data{
 	float calc_thrust;
 
 }DebugData;
+
 typedef struct __my_vicon_data{
 	//unit ms
 	int timestamp;
@@ -93,7 +94,12 @@ typedef enum __package_define{
 	PACKAGE_DEFINE_FUSION,
 	PACKAGE_DEFINE_DEBUG,
 	PACKAGE_DEFINE_PARAM,
+	PACKAGE_DEFINE_CMD
 }PackageDefine;
+
+typedef struct __cmd_data{
+	int cmd;
+}CmdData;
 
 #define VICON_DATA_LENGTH ((unsigned char)(sizeof(MyViconData)))
 #define SYSTEM_STATE_LENGTH ((unsigned char)(sizeof(SystemState)))
@@ -101,17 +107,7 @@ typedef enum __package_define{
 #define FUSION_DATA_LENGTH ((unsigned char)(sizeof(FusionData)))
 #define DEBUG_DATA_LENGTH ((unsigned char)(sizeof(DebugData)))
 #define PARAM_DEBUG_LENGTH ((unsigned char)(sizeof(ParamDebug)))
-
-//typedef enum __package_length{
-//	ALL=VICON_DATA_LENGTH
-//	+SYSTEM_STATE_LENGTH
-//	+SENSOR_DATA_LENGTH
-//	+FUSION_DATA_LENGTH,
-//	STATUS=SYSTEM_STATE_LENGTH,
-//	VICON=VICON_DATA_LENGTH,
-//	SENSOR=SENSOR_DATA_LENGTH,
-//	FUSION=FUSION_DATA_LENGTH,
-//}PackageLength;
+#define CMD_DATA_LENGTH ((unsigned char)(sizeof(CmdData)))
 
 typedef enum __parse_status{
 	PARSE_NOT_START,
@@ -130,7 +126,7 @@ typedef struct __package_info{
 }PackageInfo;
 #define BUFFER_LENGTH 255
 
-
+//remote control only
 typedef struct __my_sql_data{
 	MyViconData viconData;
 	SystemState state;
@@ -144,10 +140,19 @@ void my_send(int fd
 		,unsigned char pl
 		,void* data
 		,unsigned char check);
+
+typedef enum __receive_state{
+	RECEIVE_STATE_NOT_COMPLETED,
+	RECEIVE_STATE_GOT_TYPE,
+	RECEIVE_STATE_SUCCESS,
+}ReceiveState;
+
 void send_single(int fd,unsigned char c);
-unsigned char my_receive(int fd,void* buffer,void* data,unsigned char check);
+ReceiveState my_receive(int fd,void* buffer,void* data,
+		int* id,unsigned char check);
 int receive_single(int fd,unsigned char* result);
 
+unsigned char getPackageLength(PackageDefine pd);
 
 extern long signed int (*read_callback)(int,void*,unsigned long);
 extern long signed int (*write_callback)(int,const void*,unsigned long int);

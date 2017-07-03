@@ -16,7 +16,7 @@ SensorData sensorData;
 SystemState systemState;
 FusionData fusionData;
 
-DebugData debugData;
+DebugData receiveDebugData;
 //MyViconData receivedViconData;
 //SensorData receivedSensorData;
 //SystemState receivedSystemState;
@@ -118,7 +118,7 @@ void* receive_thread(void* ha=NULL){
 	static int pre_timestamp=0;
 	tcflush(fd,TCIOFLUSH);
 	while(1){
-		if(my_receive(fd,buffer,&debugData,1)){
+		if(my_receive(fd,buffer,&receiveDebugData,1)){
 //			logUtils->log_in(receivedViconData.timestamp-pre_timestamp);
 //			logUtils->log_end();
 //			printf("received ok!\n");
