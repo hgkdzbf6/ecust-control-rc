@@ -32,5 +32,5 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean: 	
 	-rm *.o
-	-rm remote_control
+	-rm $(EXECUTABLE)
 	

@@ -10,8 +10,8 @@
 #include <string.h>
 #include <stdio.h>
 
-//#define PARAM_DEBUG_MODE
-#define DEBUG_DATA_MODE
+#define PARAM_DEBUG_MODE
+//#define DEBUG_DATA_MODE
 
 typedef struct __param_debug{
 	int thrust;

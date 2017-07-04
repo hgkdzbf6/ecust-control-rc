@@ -17,8 +17,10 @@ MyViconData viconData;
 SensorData sensorData;
 SystemState systemState;
 FusionData fusionData;
+CmdData sendCmdData={0};
 
 DebugData receiveDebugData={0};
+DebugData sendDebugData={0};
 SqlData sqlData={0};
 ParamDebug sendParamDebug={0};
 ParamDebug receiveParamDebug={0};
@@ -46,9 +48,9 @@ unsigned char pl=VICON_DATA_LENGTH;
 #endif
 
 
-CmdData sendCmdData={0};
 unsigned char buffer[255];
 unsigned char mysql_switch=0;
+unsigned char cmd_flag=PACKAGE_DEFINE_DEBUG;
 unsigned char show_flag=1;
 unsigned char received_k_info_flag=0;
 
@@ -61,13 +63,15 @@ void showReceiveParamDebugOnce();
 void showSendParamDebug();
 void setViconData();
 void setSendParamDebug();
+void setSendDebugData();
 void showDebugData(int pre_timestamp);
 //manual:
 //comming params:
 //it consist of 3 params
 //first is what USB port your device used.
 //second is what vicon segment and subject are your vicon object used.
-//third is the switch of mysql data
+//third is the send cmd
+//fourth is the switch of mysql data
 
 int main(int argc, char* argv[]){
 	pthread_t p_send;
@@ -92,7 +96,6 @@ int main(int argc, char* argv[]){
 	}else{
 		strcat(vicon_name,"2");
 	}
-
 	if(argc>3){
 		if(strcmp(argv[3],"0")==0){
 			mysql_switch=0;
@@ -101,6 +104,15 @@ int main(int argc, char* argv[]){
 		}
 	}else{
 		mysql_switch=0;
+	}
+	if(argc>4){
+		if(strcmp(argv[4],"5")==0){
+			cmd_flag=PACKAGE_DEFINE_DEBUG;
+		}else{
+			cmd_flag=PACKAGE_DEFINE_PARAM;
+		}
+	}else{
+		cmd_flag=PACKAGE_DEFINE_DEBUG;
 	}
 	printf("this is custom protocol of autopilot sdk 2.0\n");
 	printf("the purpose of this program is to increase the sending frequency\n");
@@ -251,19 +263,23 @@ void* send_thread(void* ha=NULL){
 		//get vicon data from workstation
 		vicon->get_translation_data();
 		vicon->get_rotation_data();
-		vicon->check();
 		vicon->get_speed();
-		//set the struct data
-		//send it
-#ifdef DEBUG_DATA_MODE
-		setViconData();
-		my_send(fd,pd,pl,&viconData,1);
-#endif
-
-#ifdef PARAM_DEBUG_MODE
-		setSendParamDebug();
-		my_send(fd,pd,pl,&sendParamDebug,1);
-#endif
+		vicon->check();
+		sendCmdData.cmd=cmd_flag;
+//		my_send(fd,PACKAGE_DEFINE_CMD,
+//					getPackageLength(PACKAGE_DEFINE_CMD),
+//					&sendCmdData,1);
+		if(sendCmdData.cmd==PACKAGE_DEFINE_DEBUG){
+			setSendDebugData();
+			my_send(fd,PACKAGE_DEFINE_DEBUG,
+				getPackageLength(PACKAGE_DEFINE_DEBUG),
+				&sendDebugData,1);
+		}else if(sendCmdData.cmd==PACKAGE_DEFINE_PARAM){
+			setSendParamDebug();
+			my_send(fd,PACKAGE_DEFINE_PARAM,
+					getPackageLength(PACKAGE_DEFINE_PARAM),
+					&sendParamDebug,1);
+		}
 		//sleep
 		usleep(49876);
 	}
@@ -278,7 +294,6 @@ void* receive_thread(void* ha=NULL){
 	static int pre_timestamp=0;
 	tcflush(fd,TCIOFLUSH);
 	while(1){
-#ifdef DEBUG_DATA_MODE
 		receive_state=my_receive(fd,(void*)buffer,
 				(void*)(&allDataBuffer),(int*)(&pack_id),1);
 		if(receive_state==RECEIVE_STATE_SUCCESS){
@@ -303,31 +318,13 @@ void* receive_thread(void* ha=NULL){
 			case PACKAGE_DEFINE_PARAM:
 				memcpy(&receiveParamDebug,allDataBuffer,getPackageLength(pack_id));
 				showReceiveParamDebugOnce();
-				//setParamDebug();
-				setSendParamDebug();
 				break;
 			case PACKAGE_DEFINE_CMD:
 				break;
 			default:
 				break;
 			}
-#endif
-
-#ifdef PARAM_DEBUG_MODE
-		if(my_receive(fd,buffer,&receiveParamDebug,1)){
-			if(show_flag!=0){
-				showReceiveParamDebugOnce();
-			}
-#endif
-			//setViconData();
-			//showViconDataOnce();
-#ifdef PARAM_DEBUG_MODE
 		}
-#endif
-
-#ifdef DEBUG_DATA_MODE
-		}
-#endif
 	}
 }
 void packSqlData(){
@@ -350,6 +347,11 @@ void packSqlData(){
 }
 void setParamDebug(){
 	//receiveDebug
+}
+void setSendDebugData(){
+	sendDebugData.z=vicon->translation(2);
+	sendDebugData.vz=vicon->speed(2);
+	sendDebugData.timestamp=vicon->tp(0);
 }
 void setViconData(){
 	viconData.x=vicon->translation(0);
@@ -382,8 +384,6 @@ void showDebugData(int pre_timestamp){
 	printf("battery:%d\n",receiveDebugData.battery);
 	printf("cpu_load:%d\n",receiveDebugData.cpu_load);
 	printf("vicon_count:%d\n",receiveDebugData.vicon_count);
-	printf("timestamp:%d\n",
-			receiveDebugData.timestamp);
 	printf("timestamp:%d\td_timestamp:%d\n",
 				receiveDebugData.timestamp
 				,receiveDebugData.timestamp-pre_timestamp);
@@ -403,6 +403,7 @@ void showReceiveParamDebugOnce(){
 		printf("\tkp_v:%f\n",receiveParamDebug.kp_v);
 		printf("\tki_v:%f\n",receiveParamDebug.ki_v);
 		printf("\tthrust:%d\n",receiveParamDebug.thrust);
+		printf("\tcalc_thrust:%f\n",receiveParamDebug.calc_thrust);
 		show_flag=0;
 	}while(show_flag==1);
 }
@@ -416,6 +417,8 @@ void showSendParamDebug(){
 	printf("\tkp_v:%f\n",sendParamDebug.kp_v);
 	printf("\tki_v:%f\n",sendParamDebug.ki_v);
 	printf("\tthrust:%d\n",sendParamDebug.thrust);
+	printf("\tset_velocity:%f\n",sendParamDebug.set_velocity);
+	printf("\tcalc_thrust:%f\n",sendParamDebug.calc_thrust);
 	usleep(10000);
 }
 
