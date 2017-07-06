@@ -64,6 +64,7 @@ void showSendParamDebug();
 void setViconData();
 void setSendParamDebug();
 void setSendDebugData();
+void showSendDebugData();
 void showDebugData(int pre_timestamp);
 //manual:
 //comming params:
@@ -120,6 +121,7 @@ int main(int argc, char* argv[]){
 	printf("vicon name is %s\n",vicon_name);
 	printf("if you wait for too long time, please check your network config.\n");
 	vicon=new ViconUtils(vicon_name,vicon_name);
+	vicon->vicon_init();
 	printf("vicon_init_ok!\n");
 	logUtils=new LogUtils();
 	printf("log utils init ok\n");
@@ -195,6 +197,7 @@ void nextMenu(char cmd){
 			printf("paramDebug.kp_p values %f has been sent\n",sendParamDebug.kp_p);
 			showSendParamDebug();
 			showReceiveParamDebugOnce();
+			printf("%f\n",vicon->translation(2));
 			break;
 		case '2':
 			sendParamDebug.kp_p-=0.01;
@@ -262,15 +265,17 @@ void* send_thread(void* ha=NULL){
 	while(1){
 		//get vicon data from workstation
 		vicon->get_translation_data();
-		vicon->get_rotation_data();
-		vicon->get_speed();
+		//vicon->get_rotation_data();
 		vicon->check();
+		vicon->get_speed();
+		vicon->update_data();
 		sendCmdData.cmd=cmd_flag;
 //		my_send(fd,PACKAGE_DEFINE_CMD,
 //					getPackageLength(PACKAGE_DEFINE_CMD),
 //					&sendCmdData,1);
 		if(sendCmdData.cmd==PACKAGE_DEFINE_DEBUG){
 			setSendDebugData();
+			//showSendDebugData();
 			my_send(fd,PACKAGE_DEFINE_DEBUG,
 				getPackageLength(PACKAGE_DEFINE_DEBUG),
 				&sendDebugData,1);
@@ -281,7 +286,7 @@ void* send_thread(void* ha=NULL){
 					&sendParamDebug,1);
 		}
 		//sleep
-		usleep(49876);
+		usleep(20000);
 	}
 }
 
@@ -352,6 +357,11 @@ void setSendDebugData(){
 	sendDebugData.z=vicon->translation(2);
 	sendDebugData.vz=vicon->speed(2);
 	sendDebugData.timestamp=vicon->tp(0);
+}
+void showSendDebugData(){
+	printf("sendDebugData.z:%f\n", sendDebugData.z);
+	printf("sendDebugData.vz%f\n", sendDebugData.vz);
+	printf("sendDebugData.timestamp:%d\n", sendDebugData.timestamp);
 }
 void setViconData(){
 	viconData.x=vicon->translation(0);

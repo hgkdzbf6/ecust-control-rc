@@ -7,14 +7,16 @@ ViconUtils::ViconUtils(std::string  _subject, std::string _segment)
 }
 
 ViconUtils::ViconUtils()
-:flag(false),subject("H1"),segment("H1"),HOST("192.168.1.106:801")
+:flag(false),subject("H2"),segment("H2"),HOST("192.168.1.106:801")
 {
 	vicon_init();
 }
 
 void ViconUtils:: vicon_init(){
 	memset(p_speed,0,sizeof(double)*3);
-	MyClient.Connect(HOST);
+    while( !MyClient.IsConnected().Connected ){
+    	MyClient.Connect(HOST);
+    }
 	//if wait too long time,it may be caused by you choose wrong network
 	MyClient.EnableSegmentData();
 	MyClient.GetFrame();
@@ -30,7 +32,7 @@ ViconUtils::~ViconUtils()
 bool ViconUtils::get_translation_data()
 {
 	int i=0;
-	MyClient.Connect(HOST);
+	//MyClient.Connect(HOST);
 	//try 10 times
 	for(i=0;i<MAX_TRY_TIMES;i++){
 		MyClient.EnableSegmentData();
@@ -42,6 +44,7 @@ bool ViconUtils::get_translation_data()
 			raw.Translations[1] = PositionOutput.Translation[1];
 			raw.Translations[2] = PositionOutput.Translation[2];
 		}else{
+			//printf("PositionOutput.Result=%d\n",PositionOutput.Result);
 			continue;
 		}
 		position_frame_num= MyClient.GetFrameNumber();
@@ -56,7 +59,7 @@ bool ViconUtils::get_translation_data()
 bool ViconUtils::get_rotation_data()
 {
 	int i=0;
-	MyClient.Connect(HOST);
+	//MyClient.Connect(HOST);
 	//try 10 times
 	for(i=0;i<MAX_TRY_TIMES;i++){
 		MyClient.EnableSegmentData();
@@ -64,6 +67,8 @@ bool ViconUtils::get_rotation_data()
 		MyClient.GetFrame();
 		AngleOutput = MyClient.GetSegmentGlobalRotationEulerXYZ(subject, segment);
 		if(AngleOutput.Result == 2){
+#include "DataStreamClient.h"
+#include <iostream>
 			raw.Rotations[0]= AngleOutput.Rotation[0];
 			raw.Rotations[1] = AngleOutput.Rotation[1];
 			raw.Rotations[2] = AngleOutput.Rotation[2];
@@ -81,7 +86,7 @@ bool ViconUtils::get_rotation_data()
 
 bool ViconUtils::get_quaternion(){
 	int i=0;
-	MyClient.Connect(HOST);
+	//MyClient.Connect(HOST);
 	//try 10 times
 	for(i=0;i<MAX_TRY_TIMES;i++){
 		MyClient.EnableSegmentData();

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #ifndef MY_PI
 #define MY_PI 3.14159265358979
 #endif
@@ -41,6 +42,7 @@ public:
 	double quaternion(int num);
 	double rotation(int num);
 	void check();
+	void vicon_init();
 private:
 	ViconDataStreamSDK::CPP::Output_GetFrameNumber position_frame_num;
 	ViconDataStreamSDK::CPP::Output_GetFrameNumber rotation_frame_num;
@@ -50,7 +52,6 @@ private:
 	std::string subject;
 	std::string segment;
 	ViconDataStreamSDK::CPP::Client MyClient;
-	void vicon_init();
 	ViconData pre_valid;
 	ViconData last_valid;
 	ViconData raw;
