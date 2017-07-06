@@ -333,16 +333,20 @@ void* receive_thread(void* ha=NULL){
 	}
 }
 void packSqlData(){
-	sqlData.viconData.timestamp=viconData.timestamp;
-	sqlData.viconData.x=viconData.x;
-	sqlData.viconData.y=viconData.y;
-	sqlData.viconData.z=viconData.z;
-	sqlData.viconData.pitch=viconData.pitch;
-	sqlData.viconData.roll=viconData.roll;
-	sqlData.viconData.yaw=viconData.yaw;
-	sqlData.viconData.vx=viconData.vx;
-	sqlData.viconData.vy=viconData.vy;
-	sqlData.viconData.vz=viconData.vz;
+	sqlData.viconData.timestamp=receiveDebugData.timestamp;
+//	sqlData.viconData.timestamp=viconData.timestamp;
+//	sqlData.viconData.x=viconData.x;
+//	sqlData.viconData.y=viconData.y;
+//	sqlData.viconData.z=viconData.z;
+//	sqlData.viconData.pitch=viconData.pitch;
+//	sqlData.viconData.roll=viconData.roll;
+//	sqlData.viconData.yaw=viconData.yaw;
+//	sqlData.viconData.vx=viconData.vx;
+//	sqlData.viconData.vy=viconData.vy;
+//	sqlData.viconData.vz=viconData.vz;
+	sqlData.viconData.z=receiveDebugData.z;
+	sqlData.viconData.vz=receiveDebugData.vz;
+
 	sqlData.state.battery=receiveDebugData.battery;
 	sqlData.state.cpu_load=receiveDebugData.cpu_load;
 	sqlData.state.vicon_count=receiveDebugData.vicon_count;
