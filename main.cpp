@@ -66,6 +66,7 @@ void setSendParamDebug();
 void setSendDebugData();
 void showSendDebugData();
 void showDebugData(int pre_timestamp);
+
 //manual:
 //comming params:
 //it consist of 3 params
@@ -265,7 +266,7 @@ void* send_thread(void* ha=NULL){
 	while(1){
 		//get vicon data from workstation
 		vicon->get_translation_data();
-		//vicon->get_rotation_data();
+		vicon->get_rotation_data();
 		vicon->check();
 		vicon->get_speed();
 		vicon->update_data();
@@ -286,7 +287,7 @@ void* send_thread(void* ha=NULL){
 					&sendParamDebug,1);
 		}
 		//sleep
-		usleep(20000);
+		usleep(49876);
 	}
 }
 
@@ -334,17 +335,14 @@ void* receive_thread(void* ha=NULL){
 }
 void packSqlData(){
 	sqlData.viconData.timestamp=receiveDebugData.timestamp;
-//	sqlData.viconData.timestamp=viconData.timestamp;
-//	sqlData.viconData.x=viconData.x;
-//	sqlData.viconData.y=viconData.y;
-//	sqlData.viconData.z=viconData.z;
-//	sqlData.viconData.pitch=viconData.pitch;
-//	sqlData.viconData.roll=viconData.roll;
-//	sqlData.viconData.yaw=viconData.yaw;
-//	sqlData.viconData.vx=viconData.vx;
-//	sqlData.viconData.vy=viconData.vy;
-//	sqlData.viconData.vz=viconData.vz;
+	sqlData.viconData.x=receiveDebugData.x;
+	sqlData.viconData.y=receiveDebugData.y;
 	sqlData.viconData.z=receiveDebugData.z;
+	sqlData.viconData.pitch=receiveDebugData.pitch;
+	sqlData.viconData.roll=receiveDebugData.roll;
+	sqlData.viconData.yaw=receiveDebugData.yaw;
+	sqlData.viconData.vx=receiveDebugData.vx;
+	sqlData.viconData.vy=receiveDebugData.vy;
 	sqlData.viconData.vz=receiveDebugData.vz;
 
 	sqlData.state.battery=receiveDebugData.battery;
@@ -358,8 +356,15 @@ void setParamDebug(){
 	//receiveDebug
 }
 void setSendDebugData(){
+	sendDebugData.x=vicon->translation(0);
+	sendDebugData.y=vicon->translation(1);
 	sendDebugData.z=vicon->translation(2);
+	sendDebugData.vx=vicon->speed(0);
+	sendDebugData.vy=vicon->speed(1);
 	sendDebugData.vz=vicon->speed(2);
+	sendDebugData.pitch=vicon->rotation(0);
+	sendDebugData.roll=vicon->rotation(1);
+	sendDebugData.yaw=vicon->rotation(2);
 	sendDebugData.timestamp=vicon->tp(0);
 }
 void showSendDebugData(){
@@ -401,8 +406,15 @@ void showDebugData(int pre_timestamp){
 	printf("timestamp:%d\td_timestamp:%d\n",
 				receiveDebugData.timestamp
 				,receiveDebugData.timestamp-pre_timestamp);
+
+	printf("pitch:%f\n",receiveDebugData.pitch);
+	printf("roll:%f\n",receiveDebugData.roll);
+	printf("yaw:%f\n",receiveDebugData.yaw);
+
+	printf("x:%f\tvx:%f\n",receiveDebugData.x,receiveDebugData.vx);
+	printf("y:%f\tvy:%f\n",receiveDebugData.y,receiveDebugData.vy);
 	printf("z:%f\tvz:%f\n",receiveDebugData.z,receiveDebugData.vz);
-	printf("set_p:%f\tset_v:%f\n",receiveDebugData.set_position
+	printf("set_vx:%f\tset_vy:%f\n",receiveDebugData.set_position
 			,receiveDebugData.set_velocity);
 	printf("thrust:%f\n\n",receiveDebugData.calc_thrust);
 }
