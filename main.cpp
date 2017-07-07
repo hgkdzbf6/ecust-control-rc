@@ -58,7 +58,9 @@ void* send_thread(void*);
 void* receive_thread(void*);
 void menu();
 void packSqlData();
+void packSimpleData();
 void nextMenu(char cmd);
+void createHeader();
 void showReceiveParamDebugOnce();
 void showSendParamDebug();
 void setViconData();
@@ -99,10 +101,12 @@ int main(int argc, char* argv[]){
 		strcat(vicon_name,"2");
 	}
 	if(argc>3){
-		if(strcmp(argv[3],"0")==0){
-			mysql_switch=0;
-		}else{
+		if(strcmp(argv[3],"1")==0){
 			mysql_switch=1;
+		}else if(strcmp(argv[3],"2")==0){
+			mysql_switch=2;
+		}else if(strcmp(argv[3],"0")==0){
+			mysql_switch=0;
 		}
 	}else{
 		mysql_switch=0;
@@ -124,10 +128,13 @@ int main(int argc, char* argv[]){
 	vicon=new ViconUtils(vicon_name,vicon_name);
 	vicon->vicon_init();
 	printf("vicon_init_ok!\n");
-	logUtils=new LogUtils();
 	printf("log utils init ok\n");
-	if(mysql_switch!=0){
+	if(mysql_switch==1){
 		sql=new SQLUtils();
+		printf("sql utils init ok.\n");
+	}else if(mysql_switch==2){
+		logUtils=new LogUtils();
+		createHeader();
 		printf("log utils init ok.\n");
 	}else{
 		printf("you have switch off the mysql switch.\n");
@@ -152,6 +159,40 @@ int main(int argc, char* argv[]){
 #endif
 	}
 	return 0;
+}
+void createHeader(){
+	logUtils->log_in("timestamp");
+	logUtils->log_pause();
+	logUtils->log_in("x");
+	logUtils->log_pause();
+	logUtils->log_in("y");
+	logUtils->log_pause();
+	logUtils->log_in("z");
+	logUtils->log_pause();
+	logUtils->log_in("pitch");
+	logUtils->log_pause();
+	logUtils->log_in("roll");
+	logUtils->log_pause();
+	logUtils->log_in("yaw");
+	logUtils->log_pause();
+	logUtils->log_in("vx");
+	logUtils->log_pause();
+	logUtils->log_in("vy");
+	logUtils->log_pause();
+	logUtils->log_in("vz");
+	logUtils->log_pause();
+	logUtils->log_in("battery");
+	logUtils->log_pause();
+	logUtils->log_in("cpu_load");
+	logUtils->log_pause();
+	logUtils->log_in("vicon_count");
+	logUtils->log_pause();
+	logUtils->log_in("set_position");
+	logUtils->log_pause();
+	logUtils->log_in("set_velocity");
+	logUtils->log_pause();
+	logUtils->log_in("calc_thrust");
+	logUtils->log_end();
 }
 
 void menu(){
@@ -303,9 +344,11 @@ void* receive_thread(void* ha=NULL){
 		receive_state=my_receive(fd,(void*)buffer,
 				(void*)(&allDataBuffer),(int*)(&pack_id),1);
 		if(receive_state==RECEIVE_STATE_SUCCESS){
-			if(mysql_switch!=0){
+			if(mysql_switch==1){
 				packSqlData();
 				sql->dataIn(&sqlData);
+			}else if(mysql_switch==2){
+				packSimpleData();
 			}
 			switch(pack_id){
 			case PACKAGE_DEFINE_STATUS:
@@ -351,6 +394,40 @@ void packSqlData(){
 	sqlData.set_position=receiveDebugData.set_position;
 	sqlData.set_velocity=receiveDebugData.set_velocity;
 	sqlData.calc_thrust=receiveDebugData.calc_thrust;
+}
+void packSimpleData(){
+	logUtils->log_in(receiveDebugData.timestamp);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.x);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.y);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.z);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.pitch);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.roll);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.yaw);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.vx);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.vy);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.vz);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.battery);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.cpu_load);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.vicon_count);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.set_position);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.set_velocity);
+	logUtils->log_pause();
+	logUtils->log_in(receiveDebugData.calc_thrust);
+	logUtils->log_end();
 }
 void setParamDebug(){
 	//receiveDebug

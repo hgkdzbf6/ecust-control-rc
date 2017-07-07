@@ -9,6 +9,10 @@
 #define LOGUTILS_H_
 #include <iostream>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <time.h>
+#include <unistd.h>
 //#include <cstdint>
 
 typedef float single;
@@ -18,6 +22,7 @@ public:
 	LogUtils();
 	void log_in(int num);
 	void log_in(long num);
+	void log_in(std::string num);
 	void log_in(single num);
 	void log_pause();
 	void log_end();
@@ -27,6 +32,11 @@ public:
 	bool readIn();
 	~LogUtils();
 private:
+	std::string fileName;
+	std::ostringstream timeStream;
+	std::string timeStr;
+	std::string createName();
+	std::string createHeader();
 	int data[DATA_NUM];
 	std::ofstream* _file;
 	std::ifstream* _file_read;

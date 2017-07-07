@@ -9,8 +9,9 @@
 
 LogUtils::LogUtils() {
 	// TODO Auto-generated constructor stub
-	_file=new std::ofstream("./data.csv");
-	_file_read=new std::ifstream("./setting.ini");
+	createName();
+	_file=new std::ofstream(this->fileName.c_str());
+	//_file_read=new std::ifstream("./setting.ini");
 	_file->is_open();
 }
 
@@ -24,13 +25,30 @@ LogUtils::~LogUtils() {
 	_file_read=NULL;
 }
 
-void LogUtils::log_in(int num){
+std::string LogUtils::createName(){
+	time_t tt=time(NULL);
+	tm* t=localtime(&tt);
+	timeStream<< 1900+t->tm_year
+		<<std::setfill('0') <<std:: setw(2)<<1+t->tm_mon
+		<<std::setfill('0') << std::setw(2)<<t->tm_mday
+		<<std::setfill('0') << std::setw(2)<<t->tm_hour
+		<<std::setfill('0') << std::setw(2)<<t->tm_min
+		<<std::setfill('0') << std::setw(2)<<t->tm_sec;
+	timeStr=timeStream.str();
+	fileName="data_"+timeStr+".csv";
+	return fileName;
+}
+void LogUtils::log_in( int num){
 	*_file<<num;
 }
-void LogUtils::log_in(single num){
+void LogUtils::log_in( std::string num){
 	*_file<<num;
 }
-void LogUtils::log_in(long num){
+
+void LogUtils::log_in( single num){
+	*_file<<num;
+}
+void LogUtils::log_in( long num){
 	*_file<<num;
 }
 void LogUtils::log_pause(){
