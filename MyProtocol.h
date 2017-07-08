@@ -104,7 +104,7 @@ typedef enum __package_define{
 	PACKAGE_DEFINE_FUSION,
 	PACKAGE_DEFINE_DEBUG,
 	PACKAGE_DEFINE_PARAM,
-	PACKAGE_DEFINE_CMD
+	PACKAGE_DEFINE_CMD,
 }PackageDefine;
 
 typedef struct __cmd_data{
