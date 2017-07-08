@@ -11,7 +11,7 @@
 #define VICON_FREQ 200
 using namespace std;
 
-#define MAX_TRY_TIMES 10
+#define MAX_TRY_TIMES 3
 
 //typedef unsigned long u_int32_t;
 

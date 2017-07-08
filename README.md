@@ -3,6 +3,13 @@ v3.0
 add waypoint
 
 
+
+
+v2.1
+
+can control horizon position
+
+
 v2.0
 
 add position control

@@ -1,13 +1,13 @@
 #include "ViconUtils.h"
 
 ViconUtils::ViconUtils(std::string  _subject, std::string _segment)
-:flag(false),subject(_subject),segment(_segment),HOST("192.168.1.106:801")
+:flag(false),subject(_subject),segment(_segment),HOST("192.168.1.35:801")
 {
 	vicon_init();
 }
 
 ViconUtils::ViconUtils()
-:flag(false),subject("H2"),segment("H2"),HOST("192.168.1.106:801")
+:flag(false),subject("H2"),segment("H2"),HOST("192.168.1.35:801")
 {
 	vicon_init();
 }
@@ -44,7 +44,7 @@ bool ViconUtils::get_translation_data()
 			raw.Translations[1] = PositionOutput.Translation[1];
 			raw.Translations[2] = PositionOutput.Translation[2];
 		}else{
-			//printf("PositionOutput.Result=%d\n",PositionOutput.Result);
+			printf("PositionOutput.Result=%d\n",PositionOutput.Result);
 			continue;
 		}
 		position_frame_num= MyClient.GetFrameNumber();
@@ -67,8 +67,6 @@ bool ViconUtils::get_rotation_data()
 		MyClient.GetFrame();
 		AngleOutput = MyClient.GetSegmentGlobalRotationEulerXYZ(subject, segment);
 		if(AngleOutput.Result == 2){
-#include "DataStreamClient.h"
-#include <iostream>
 			raw.Rotations[0]= AngleOutput.Rotation[0];
 			raw.Rotations[1] = AngleOutput.Rotation[1];
 			raw.Rotations[2] = AngleOutput.Rotation[2];

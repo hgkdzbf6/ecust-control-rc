@@ -36,7 +36,8 @@ unsigned char allDataBuffer[256]={0};
  long signed int (*write_callback)(int,const void*,unsigned long int);
 
 int fd;
-
+clock_t clock_start,clock_end;
+clock_t max_send_time,min_send_time;
 #ifdef PARAM_DEBUG_MODE
 PackageDefine pd=PACKAGE_DEFINE_PARAM;
 unsigned char pl=PARAM_DEBUG_LENGTH;
@@ -303,6 +304,7 @@ void nextMenu(char cmd){
 
 void* send_thread(void* ha=NULL){
 	while(1){
+		clock_start=clock();
 		//get vicon data from workstation
 		vicon->get_translation_data();
 		vicon->get_rotation_data();
@@ -327,7 +329,9 @@ void* send_thread(void* ha=NULL){
 					&sendParamDebug,1);
 		}
 		//sleep
-		usleep(49876);
+		usleep(20000);
+		clock_end=clock();
+		//printf("send pass time:%ld\n",clock_end-clock_start);
 	}
 }
 

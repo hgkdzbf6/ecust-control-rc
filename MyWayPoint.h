@@ -9,6 +9,7 @@
 #define MYWAYPOINT_H_
 
 #include <string.h>
+#include <stdio.h>
 namespace zbf {
 
 #ifndef NULL
@@ -69,9 +70,11 @@ public:
 	void addNewWayPoint(WayPoint wp);
 	void addNewPositionWayPoint(PositionWayPoint pwp);
 	//void run();
-	WayPointNode* sendCurrentWayPoint();
+	WayPoint* sendCurrentWayPoint();
 	bool gotoNextPositionWayPoint();
 	bool gotoNextWayPoint();
+	void showWayPoint();
+	void showPositionWayPoint();
 	virtual ~MyWayPoint();
 private:
 	WAY_POINT_TYPE wpt;
