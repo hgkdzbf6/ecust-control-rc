@@ -63,6 +63,7 @@ unsigned char buffer[255];
 unsigned char record_flag=0;
 unsigned char cmd_flag=PACKAGE_DEFINE_DEBUG;
 unsigned char show_flag=1;
+unsigned char way_point_flag=0;
 unsigned char received_k_info_flag=0;
 
 void* send_thread(void*);
@@ -276,7 +277,7 @@ void nextMenu(char cmd){
 			cmd_flag=PACKAGE_DEFINE_PARAM;
 			break;
 		case '2':
-			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+			way_point_flag=1;
 			break;
 		case '3':
 			cmd_flag=PACKAGE_DEFINE_LAND;
@@ -364,10 +365,13 @@ void setSendPositionWayPointData(){
 			receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
 		printf("it flies to next position way point.\n");
 		mwp->showPositionWayPoint();
+
 	}
 	sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
 	sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
 	sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
+	if(way_point_flag==1)
+			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 }
 
 
