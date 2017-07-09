@@ -3,16 +3,20 @@
 #include "MyProtocol.h"
 #include "mysql/mysql.h"
 #include "SQLUtils.h"
+#include "MyWayPoint.h"
 #include <unistd.h> // UNIX standard function definitions
 #include <fcntl.h>  // File control definitions
 #include <termios.h> // POSIX terminal control definitionss
 #include <pthread.h>
 #include <time.h>
 #include <curses.h>
+using namespace zbf;
+
+
 ViconUtils *vicon;
 LogUtils *logUtils;
 SQLUtils *sql;
-
+MyWayPoint  *mwp;
 MyViconData viconData;
 SensorData sensorData;
 SystemState systemState;
@@ -24,6 +28,12 @@ DebugData sendDebugData={0};
 SqlData sqlData={0};
 ParamDebug sendParamDebug={0};
 ParamDebug receiveParamDebug={0};
+PositionWayPointData receivePositionWayPointData={0};
+PositionWayPointData sendPositionWayPointData={0};
+
+LandSignal sendLandSignal={LAND_MODE_NONE};
+LandSignal receiveLandSignal={LAND_MODE_NONE};
+
 PackageDefine pack_id;
 unsigned char allDataBuffer[256]={0};
 //MyViconData receivedViconData;
@@ -37,7 +47,7 @@ unsigned char allDataBuffer[256]={0};
 
 int fd;
 clock_t clock_start,clock_end;
-clock_t max_send_time,min_send_time;
+clock_t max_send_time=0,min_send_time=30000;
 #ifdef PARAM_DEBUG_MODE
 PackageDefine pd=PACKAGE_DEFINE_PARAM;
 unsigned char pl=PARAM_DEBUG_LENGTH;
@@ -67,9 +77,12 @@ void showSendParamDebug();
 void setViconData();
 void setSendParamDebug();
 void setSendDebugData();
+void initMyWayPoint();
 void showSendDebugData();
 void showDebugData(int pre_timestamp);
-
+void setSendPositionWayPointData();
+void showReceivePositionWayPointData();
+void showSendPositionWayPointDataOnce();
 //manual:
 //comming params:
 //it consist of 3 params
@@ -134,6 +147,9 @@ int main(int argc, char* argv[]){
 	printf("if you wait for too long time, please check your network config.\n");
 	vicon=new ViconUtils(vicon_name,vicon_name);
 	vicon->vicon_init();
+
+	initMyWayPoint();
+
 	printf("vicon_init_ok!\n");
 	printf("log utils init ok\n");
 	if(record_flag==1){
@@ -146,6 +162,7 @@ int main(int argc, char* argv[]){
 	}else{
 		printf("you have switch off the mysql switch.\n");
 	}
+
 	fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 	struct termios port_settings; // structure to store the port settings in
 	cfsetispeed(&port_settings, B57600); // set baud rates
@@ -164,6 +181,19 @@ int main(int argc, char* argv[]){
 		menu();
 	}
 	return 0;
+}
+void initMyWayPoint(){
+	mwp=new MyWayPoint(WAY_POINT_TYPE_POSITION);
+	mwp->setTolerance(300);
+	mwp->addNewPositionWayPoint(0,0,1000);
+	mwp->addNewPositionWayPoint(500,0,1000);
+	mwp->addNewPositionWayPoint(-500,0,1000);
+	mwp->addNewPositionWayPoint(-500,500,1000);
+	mwp->addNewPositionWayPoint(-500,-500,1000);
+	mwp->addNewPositionWayPoint(500,-500,1000);
+	mwp->addNewPositionWayPoint(0,0,1000);
+	mwp->showPositionWayPoint();
+
 }
 void createHeader(){
 	logUtils->log_in("timestamp");
@@ -243,59 +273,38 @@ void nextMenu(char cmd){
 		case '0':
 			break;
 		case '1':
-			sendParamDebug.kp_p+=0.01;
-			printf("paramDebug.kp_p values %f has been sent\n"
-					,sendParamDebug.kp_p);
+			cmd_flag=PACKAGE_DEFINE_PARAM;
 			break;
 		case '2':
-			sendParamDebug.kp_p-=0.01;
-			printf("paramDebug.kp_p values %f has been sent\n"
-					,sendParamDebug.kp_p);
+			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 			break;
 		case '3':
-			sendParamDebug.ki_p+=0.01;
-			printf("paramDebug.ki_p values %f has been sent\n"
-					,sendParamDebug.ki_p);
+			cmd_flag=PACKAGE_DEFINE_LAND;
+			sendLandSignal.mode=LAND_MODE_SLOW;
 			break;
 		case '4':
-			sendParamDebug.ki_p-=0.01;
-			printf("paramDebug.ki_p values %f has been sent\n"
-					,sendParamDebug.ki_p);
+			cmd_flag=PACKAGE_DEFINE_LAND;
+			sendLandSignal.mode=LAND_MODE_FAST;
 			break;
 		case '5':
-			sendParamDebug.kp_v+=0.01;
-			printf("paramDebug.kp_v values %f has been sent\n"
-					,sendParamDebug.kp_v);
+			cmd_flag=PACKAGE_DEFINE_LAND;
+			sendLandSignal.mode=LAND_MODE_STOP;
 			break;
 		case '6':
-			sendParamDebug.kp_v-=0.01;
-			printf("paramDebug.kp_v values %f has been sent\n"
-					,sendParamDebug.kp_v);
+			cmd_flag=PACKAGE_DEFINE_LAND;
+			sendLandSignal.mode=LAND_MODE_NONE;
 			break;
 		case '7':
-			sendParamDebug.ki_v+=0.01;
-			printf("paramDebug.ki_v values %f has been sent\n"
-					,sendParamDebug.ki_v);
 			break;
 		case '8':
-			sendParamDebug.ki_v-=0.01;
-			printf("paramDebug.ki_v values %f has been sent\n"
-					,sendParamDebug.ki_v);
 			break;
 		case '9':
-			sendParamDebug.thrust+=50;
-			printf("paramDebug.thrust values %d has been sent\n"
-					,sendParamDebug.thrust);
 			break;
 		case 'a':
-			sendParamDebug.thrust-=50;
-			printf("paramDebug.thrust values %d has been sent\n"
-					,sendParamDebug.thrust);
 			break;
 		default:
 			break;
 		}
-		cmd_flag=PACKAGE_DEFINE_PARAM;
 		//showReceiveParamDebugOnce();
 	}else{
 		printf("param invalid, please retry.\n");
@@ -303,6 +312,7 @@ void nextMenu(char cmd){
 }
 
 void* send_thread(void* ha=NULL){
+	clock_t temp;
 	while(1){
 		clock_start=clock();
 		//get vicon data from workstation
@@ -311,6 +321,8 @@ void* send_thread(void* ha=NULL){
 		vicon->check();
 		vicon->get_speed();
 		vicon->update_data();
+		setSendPositionWayPointData();
+		clock_end=clock();
 		sendCmdData.cmd=cmd_flag;
 //		my_send(fd,PACKAGE_DEFINE_CMD,
 //					getPackageLength(PACKAGE_DEFINE_CMD),
@@ -327,13 +339,37 @@ void* send_thread(void* ha=NULL){
 			my_send(fd,PACKAGE_DEFINE_PARAM,
 					getPackageLength(PACKAGE_DEFINE_PARAM),
 					&sendParamDebug,1);
+		}else if(sendCmdData.cmd==PACKAGE_DEFINE_POSITION_WAY_POINT){
+			//setSendPositionWayPointData();
+			showSendPositionWayPointDataOnce();
+			my_send(fd,PACKAGE_DEFINE_POSITION_WAY_POINT,
+					getPackageLength(PACKAGE_DEFINE_POSITION_WAY_POINT),
+					&sendPositionWayPointData,1);
+		}else if(sendCmdData.cmd==PACKAGE_DEFINE_LAND){
+			printf("land signal sent!\n");
+			my_send(fd,PACKAGE_DEFINE_LAND,
+					getPackageLength(PACKAGE_DEFINE_LAND),
+					&sendLandSignal,1);
 		}
 		//sleep
 		usleep(20000);
-		clock_end=clock();
-		//printf("send pass time:%ld\n",clock_end-clock_start);
+//		temp=clock_end-clock_start;
+//		if(min_send_time>temp)min_send_time=temp;
+//		if(max_send_time<temp)max_send_time=temp;
+//		printf("min:%ld,max:%ld\n",min_send_time,max_send_time);
 	}
 }
+void setSendPositionWayPointData(){
+	if(mwp->gotoNextPositionWayPoint(TOLERANCE_MODE_DISTANCE,
+			receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
+		printf("it flies to next position way point.\n");
+		mwp->showPositionWayPoint();
+	}
+	sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
+	sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
+	sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
+}
+
 
 void* receive_thread(void* ha=NULL){
 //	int fd,
@@ -363,16 +399,30 @@ void* receive_thread(void* ha=NULL){
 			case PACKAGE_DEFINE_FUSION:
 				break;
 			case PACKAGE_DEFINE_DEBUG:
-				memcpy(&receiveDebugData,allDataBuffer,getPackageLength(pack_id));
+				memcpy(&receiveDebugData
+						,allDataBuffer,getPackageLength(pack_id));
 				showDebugData(pre_timestamp);
 				pre_timestamp=receiveDebugData.timestamp;
 				break;
 			case PACKAGE_DEFINE_PARAM:
-				memcpy(&receiveParamDebug,allDataBuffer,getPackageLength(pack_id));
+				memcpy(&receiveParamDebug
+						,allDataBuffer,getPackageLength(pack_id));
 				showReceiveParamDebugOnce();
 				cmd_flag=PACKAGE_DEFINE_DEBUG;
 				break;
 			case PACKAGE_DEFINE_CMD:
+				break;
+			case PACKAGE_DEFINE_POSITION_WAY_POINT:
+				memcpy(&receivePositionWayPointData
+						,allDataBuffer,getPackageLength(pack_id));
+				showReceivePositionWayPointData();
+				cmd_flag=PACKAGE_DEFINE_DEBUG;
+				break;
+			case PACKAGE_DEFINE_LAND:
+				memcpy(&receiveLandSignal,allDataBuffer,
+						getPackageLength(pack_id));
+				printf("aircraft will land soon!\n");
+				cmd_flag=PACKAGE_DEFINE_DEBUG;
 				break;
 			default:
 				break;
@@ -520,6 +570,18 @@ void showReceiveParamDebugOnce(){
 		show_flag=0;
 	}while(show_flag==1);
 }
+void showReceivePositionWayPointData(){
+	do{
+		//printf("timestamp:%d\n",debugData.timestamp);
+		printf("\nreceive ok:\n");
+		printf("receive way point data:\n");
+		printf("\tx:%f\n",receivePositionWayPointData.x);
+		printf("\ty:%f\n",receivePositionWayPointData.y);
+		printf("\tz:%f\n",receivePositionWayPointData.z);
+		show_flag=0;
+	}while(show_flag==1);
+}
+
 void showSendParamDebug(){
 	//printf("timestamp:%d\n",debugData.timestamp);
 	if(show_flag!=0){
@@ -535,6 +597,17 @@ void showSendParamDebug(){
 		printf("\tcalc_thrust:%f\n",sendParamDebug.calc_thrust);
 	}
 }
+void showSendPositionWayPointDataOnce(){
+	do{
+		printf("\nsend ok:\n");
+		printf("send way point data:\n");
+		printf("\tx:%f\n",receivePositionWayPointData.x);
+		printf("\ty:%f\n",receivePositionWayPointData.y);
+		printf("\tz:%f\n",receivePositionWayPointData.z);
+		show_flag=0;
+	}while(show_flag==1);
+}
+
 
 void showSendParamDebugOnce(){
 	do{

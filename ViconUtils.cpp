@@ -1,13 +1,13 @@
 #include "ViconUtils.h"
 
 ViconUtils::ViconUtils(std::string  _subject, std::string _segment)
-:flag(false),subject(_subject),segment(_segment),HOST("192.168.1.35:801")
+:flag(false),subject(_subject),segment(_segment),HOST("192.168.1.212:801")
 {
 	vicon_init();
 }
 
 ViconUtils::ViconUtils()
-:flag(false),subject("H2"),segment("H2"),HOST("192.168.1.35:801")
+:flag(false),subject("H2"),segment("H2"),HOST("192.168.1.212:801")
 {
 	vicon_init();
 }

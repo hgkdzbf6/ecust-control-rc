@@ -14,7 +14,8 @@ MyWayPoint::MyWayPoint() :
 	firstPositionWayPoint(nullptr),
 	currentPositionWayPoint(nullptr),
 	firstWayPoint(nullptr),
-	currentWayPoint(nullptr){
+	currentWayPoint(nullptr),
+	isRunning(false){
 	// TODO Auto-generated constructor stub
 
 }
@@ -23,7 +24,8 @@ MyWayPoint::MyWayPoint(WAY_POINT_TYPE the_wpt):
 	firstPositionWayPoint(nullptr),
 	currentPositionWayPoint(nullptr),
 	firstWayPoint(nullptr),
-	currentWayPoint(nullptr){
+	currentWayPoint(nullptr),
+	isRunning(false){
 	// TODO Auto-generated constructor stub
 }
 
@@ -50,30 +52,55 @@ void MyWayPoint::addNewPositionWayPoint(PositionWayPoint pwp){
 	PositionWayPointNode* p=new PositionWayPointNode();
 	memcpy(&(p->pwp),&pwp,sizeof(PositionWayPoint));
 	if(firstPositionWayPoint==nullptr){
+		currentPositionWayPoint=p;
 		firstPositionWayPoint=p;
+	}else{
+		currentPositionWayPoint->next=p;
+		currentPositionWayPoint=p;
 	}
-	currentPositionWayPoint->next=p;
-	currentPositionWayPoint=p;
+}
+
+void MyWayPoint::addNewPositionWayPoint(float x,float y,float z){
+	PositionWayPoint* pwp=new PositionWayPoint();
+	pwp->x=x;
+	pwp->y=y;
+	pwp->z=z;
+	addNewPositionWayPoint(*pwp);
+	delete pwp;
+}
+void MyWayPoint::addNewWayPoint(float x,float y,float z,float vx,float vy,float vz,float yaw){
+	WayPoint* wp=new WayPoint();
+	wp->pwp.x=x;
+	wp->pwp.y=y;
+	wp->pwp.z=z;
+	wp->vwp.vx=vx;
+	wp->vwp.vy=vy;
+	wp->vwp.vz=vz;
+	wp->yaw=yaw;
+	addNewWayPoint(*wp);
+	delete wp;
 }
 void MyWayPoint::addNewWayPoint(WayPoint wp){
 	WayPointNode* p=new WayPointNode();
 	memcpy(&(p->wp),&wp,sizeof(WayPoint));
 	if(firstWayPoint==nullptr){
+		currentWayPoint=p;
 		firstWayPoint=p;
+	}else{
+		currentWayPoint->next=p;
+		currentWayPoint=p;
 	}
-	currentWayPoint->next=p;
-	currentWayPoint=p;
 }
 void MyWayPoint::showWayPoint(){
 	WayPointNode* wpn;
 	wpn=firstWayPoint;
 	printf("WayPoint list:\n[");
 	while(wpn!=nullptr){
-		printf("\n\t[\n");
-		printf("\t\t%f,%f,%f,\n",wpn->wp.pwp.x,wpn->wp.pwp.y,wpn->wp.pwp.z);
-		printf("\t\t%f,%f,%f,\n",wpn->wp.vwp.vx,wpn->wp.vwp.vy,wpn->wp.vwp.vz);
-		printf("\t\t%f\n",wpn->wp.yaw);
-		printf("\t]\n");
+		printf("\n [\n");
+		printf("  %f,%f,%f,\n",wpn->wp.pwp.x,wpn->wp.pwp.y,wpn->wp.pwp.z);
+		printf("  %f,%f,%f,\n",wpn->wp.vwp.vx,wpn->wp.vwp.vy,wpn->wp.vwp.vz);
+		printf("  %f\n",wpn->wp.yaw);
+		printf(" ]\n");
 		if(wpn->next!=nullptr)
 			printf(",");
 		wpn=wpn->next;
@@ -85,14 +112,56 @@ void MyWayPoint::showPositionWayPoint(){
 	pwpn=firstPositionWayPoint;
 	printf("WayPoint list:\n[");
 	while(pwpn!=nullptr){
-		printf("\n\t[\n");
-		printf("\t\t%f,%f,%f,\n",pwpn->pwp.x,pwpn->pwp.y,pwpn->pwp.z);
-		printf("\t]\n");
+		printf("\n ");
+		printf(" [%f,%f,%f]",pwpn->pwp.x,pwpn->pwp.y,pwpn->pwp.z);
+		pwpn=pwpn->next;
 	}
-	printf("]\n");
+	printf("\n]\n");
 }
 
-WayPoint* sendCurrentWayPoint(){
-	return curren
+WayPoint* MyWayPoint::sendCurrentWayPoint(){
+	return &(firstWayPoint->wp);
+}
+
+PositionWayPoint* MyWayPoint::sendCurrentPositionWayPoint(){
+	return &(firstPositionWayPoint->pwp);
+}
+
+bool MyWayPoint::gotoNextPositionWayPoint(TOLERANCE_MODE mode,float x,float y,float z){
+	static int try_times=0;
+	PositionWayPointNode* p;
+	if(mode==TOLERANCE_MODE_DISTANCE){
+		if(distance(x,y,z,
+				firstPositionWayPoint->pwp.x,
+				firstPositionWayPoint->pwp.y,
+				firstPositionWayPoint->pwp.z)<this->tolerance.distance)
+		{
+			if(try_times++>10){
+				p=firstPositionWayPoint;
+				firstPositionWayPoint=firstPositionWayPoint->next;
+				delete p;
+				printf("it flies to next position way point.\n");
+				return true;
+			}else{
+				return false;
+			}
+		}
+		try_times=0;
+		return false;
+	}
+	try_times=0;
+	return false;
+}
+
+float  MyWayPoint::distance(float x1,float y1,float z1,float x2,float y2,float z2){
+	float ex=x2-x1;
+	float ey=y2-y1;
+	float ez=z2-z1;
+	return sqrtf(ex*ex+ey*ey+ez*ez);
+}
+
+void MyWayPoint::setTolerance(float distance){
+	this->tolerance.mode=TOLERANCE_MODE_DISTANCE;
+	this->tolerance.distance=distance;
 }
 } /* namespace zbf */

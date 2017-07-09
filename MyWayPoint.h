@@ -10,10 +10,14 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 namespace zbf {
-
 #ifndef NULL
 #define NULL 0
+#endif
+
+#ifndef nullptr
+#define nullptr 0
 #endif
 
 typedef enum __way_point_type{
@@ -49,7 +53,16 @@ typedef struct __my_way_point_node{
 	__my_way_point_node* next;
 }WayPointNode;
 
+
+typedef enum __tolerance_enum{
+	TOLERANCE_MODE_DISTANCE=0,
+	TOLERANCE_MODE_POSITION=1,
+	TOLERANCE_MODE_SPEED=2,
+}TOLERANCE_MODE;
+
 typedef struct __error_tolerance{
+	TOLERANCE_MODE mode;
+	float distance;
 	float x;
 	float y;
 	float z;
@@ -68,18 +81,23 @@ public:
 	MyWayPoint();
 	MyWayPoint(WAY_POINT_TYPE wpt);
 	void addNewWayPoint(WayPoint wp);
+	void addNewWayPoint(float x,float y,float z,float vx,float vy,float vz,float yaw);
 	void addNewPositionWayPoint(PositionWayPoint pwp);
+	void addNewPositionWayPoint(float x,float y,float z);
 	//void run();
 	WayPoint* sendCurrentWayPoint();
-	bool gotoNextPositionWayPoint();
+	PositionWayPoint* sendCurrentPositionWayPoint();
+	bool gotoNextPositionWayPoint(TOLERANCE_MODE mode,float x,float y,float z);
 	bool gotoNextWayPoint();
 	void showWayPoint();
 	void showPositionWayPoint();
 	virtual ~MyWayPoint();
+	void setTolerance(float distance);
 private:
 	WAY_POINT_TYPE wpt;
 	Tolerance tolerance;
-	bool isRunning=false;
+	bool isRunning;
+	float distance(float x1,float y1,float z1,float x2,float y2,float z2);
 
 	WayPointNode* firstWayPoint;
 	WayPointNode* currentWayPoint;

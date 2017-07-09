@@ -15,7 +15,7 @@ LFLAGS        = -Wl,-rpath=libs #-L./libs/ -lViconDataStreamSDK_CPP
 LIBS          = -lm -lpthread -L./libs/ -lViconDataStreamSDK_CPP  -lmysqlclient
 
 # Source & Target
-SOURCES= ViconUtils.cpp main.cpp  LogUtils.cpp MyProtocol.cpp SQLUtils.cpp
+SOURCES= ViconUtils.cpp main.cpp  LogUtils.cpp MyProtocol.cpp SQLUtils.cpp MyWayPoint.cpp
 EXECUTABLE= ecustControl
 
 #===========================================================================
