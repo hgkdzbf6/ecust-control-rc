@@ -185,15 +185,18 @@ int main(int argc, char* argv[]){
 }
 void initMyWayPoint(){
 	mwp=new MyWayPoint(WAY_POINT_TYPE_POSITION);
-	mwp->setTolerance(300);
-	mwp->addNewPositionWayPoint(0,0,1000);
-	mwp->addNewPositionWayPoint(500,0,1000);
-	mwp->addNewPositionWayPoint(-500,0,1000);
-	mwp->addNewPositionWayPoint(-500,500,1000);
-	mwp->addNewPositionWayPoint(-500,-500,1000);
-	mwp->addNewPositionWayPoint(500,-500,1000);
-	mwp->addNewPositionWayPoint(0,0,1000);
+	mwp->setTolerance(30);
+//	mwp->addNewPositionWayPoint(0,0,1000);
+//	mwp->addNewPositionWayPoint(500,0,1000);
+//	mwp->addNewPositionWayPoint(-500,0,1000);
+//	mwp->addNewPositionWayPoint(-500,500,1000);
+//	mwp->addNewPositionWayPoint(-500,-500,1000);
+//	mwp->addNewPositionWayPoint(500,-500,1000);
+//	mwp->addNewPositionWayPoint(0,0,1000);
+	mwp->generateCircle(20,0,0,700,750,0);
+	mwp->addNewPositionWayPoint(-740.766296,117.325836,100);
 	mwp->showPositionWayPoint();
+
 
 }
 void createHeader(){
@@ -278,6 +281,8 @@ void nextMenu(char cmd){
 			break;
 		case '2':
 			way_point_flag=1;
+			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+			sendLandSignal.mode=LAND_MODE_NONE;
 			break;
 		case '3':
 			cmd_flag=PACKAGE_DEFINE_LAND;
@@ -361,17 +366,17 @@ void* send_thread(void* ha=NULL){
 	}
 }
 void setSendPositionWayPointData(){
+	sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
+	sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
+	sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
 	if(mwp->gotoNextPositionWayPoint(TOLERANCE_MODE_DISTANCE,
 			receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
 		printf("it flies to next position way point.\n");
 		mwp->showPositionWayPoint();
 
+		if(way_point_flag==1)
+				cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 	}
-	sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
-	sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
-	sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
-	if(way_point_flag==1)
-			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 }
 
 
@@ -605,9 +610,9 @@ void showSendPositionWayPointDataOnce(){
 	do{
 		printf("\nsend ok:\n");
 		printf("send way point data:\n");
-		printf("\tx:%f\n",receivePositionWayPointData.x);
-		printf("\ty:%f\n",receivePositionWayPointData.y);
-		printf("\tz:%f\n",receivePositionWayPointData.z);
+		printf("\tx:%f\n",sendPositionWayPointData.x);
+		printf("\ty:%f\n",sendPositionWayPointData.y);
+		printf("\tz:%f\n",sendPositionWayPointData.z);
 		show_flag=0;
 	}while(show_flag==1);
 }

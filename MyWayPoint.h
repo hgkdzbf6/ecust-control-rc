@@ -20,6 +20,10 @@ namespace zbf {
 #define nullptr 0
 #endif
 
+#ifndef MY_PI
+#define MY_PI 3.14159265358979
+#endif
+
 typedef enum __way_point_type{
 	WAY_POINT_TYPE_NORMAL,
 	WAY_POINT_TYPE_POSITION,
@@ -93,6 +97,10 @@ public:
 	void showPositionWayPoint();
 	virtual ~MyWayPoint();
 	void setTolerance(float distance);
+	void generateCircle(int count, float centerX,float centerY,float centerZ,
+			float radius, float firstAngle);
+	void generateSin(int count,int waveCount,float amplitude,float firstAngle,
+			float len,float x,float y,float z);
 private:
 	WAY_POINT_TYPE wpt;
 	Tolerance tolerance;

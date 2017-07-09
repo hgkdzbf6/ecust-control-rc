@@ -164,4 +164,28 @@ void MyWayPoint::setTolerance(float distance){
 	this->tolerance.mode=TOLERANCE_MODE_DISTANCE;
 	this->tolerance.distance=distance;
 }
+
+void MyWayPoint::generateCircle(int count, float centerX,float centerY,float centerZ,
+		float radius, float firstAngle){
+	float dAngle=MY_PI/count;
+	int i;
+	for(i=0;i<count;i++){
+		this->addNewPositionWayPoint(centerX+radius*cosf(dAngle*i+firstAngle)
+		,centerY+radius*sinf(dAngle*i+firstAngle),centerZ);
+	}
+}
+
+void MyWayPoint::generateSin(int count,int waveCount,float amplitude,float firstAngle,
+		float len,float x,float y,float z){
+	float dAngle=2*MY_PI/count*waveCount;
+	float dLen=len/count;
+	int i;
+	for(i=0;i<count;i++){
+		this->addNewPositionWayPoint(
+				x+amplitude*sinf(i*dAngle+firstAngle),
+				y+dLen*i,
+				z);
+	}
+}
+
 } /* namespace zbf */
