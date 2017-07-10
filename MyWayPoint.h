@@ -92,7 +92,9 @@ public:
 	WayPoint* sendCurrentWayPoint();
 	PositionWayPoint* sendCurrentPositionWayPoint();
 	bool gotoNextPositionWayPoint(TOLERANCE_MODE mode,float x,float y,float z);
-	bool gotoNextWayPoint();
+	bool guideWayPoint();
+	PositionWayPoint* guideCircle(int i,int count,float speed, float centerX,float centerY,float centerZ,
+			float radius, float firstAngle);
 	void showWayPoint();
 	void showPositionWayPoint();
 	virtual ~MyWayPoint();

@@ -8,7 +8,9 @@
 #include <fcntl.h>  // File control definitions
 #include <termios.h> // POSIX terminal control definitionss
 #include <pthread.h>
+#include <signal.h>
 #include <time.h>
+#include <sys/time.h>
 #include <curses.h>
 using namespace zbf;
 
@@ -21,10 +23,12 @@ MyViconData viconData;
 SensorData sensorData;
 SystemState systemState;
 FusionData fusionData;
+
 CmdData sendCmdData={0};
 CmdData receiveCmdData={0};
 DebugData receiveDebugData={0};
 DebugData sendDebugData={0};
+
 SqlData sqlData={0};
 ParamDebug sendParamDebug={0};
 ParamDebug receiveParamDebug={0};
@@ -66,7 +70,7 @@ unsigned char show_flag=1;
 unsigned char way_point_flag=0;
 unsigned char received_k_info_flag=0;
 
-void* send_thread(void*);
+void send_thread(int a);
 void* receive_thread(void*);
 void menu();
 void packSqlData();
@@ -93,7 +97,7 @@ void showSendPositionWayPointDataOnce();
 //fourth is the switch of mysql data
 
 int main(int argc, char* argv[]){
-	pthread_t p_send;
+	//pthread_t p_send;
 	pthread_t p_receieve;
 	char port[30]="/dev/ttyUSB";
 	char vicon_name[20]="H";
@@ -176,9 +180,21 @@ int main(int argc, char* argv[]){
 	read_callback=read;
 	write_callback=write;
 	printf("thread start!\n");
-	pthread_create(&p_send, NULL, send_thread, NULL);
+	//pthread_create(&p_send, NULL, send_thread, NULL);
 	pthread_create(&p_receieve, NULL, receive_thread, NULL);
-	while(1){
+	int res=0;
+	signal(SIGALRM,send_thread);
+	struct itimerval tick;
+	memset(&tick,0,sizeof(tick));
+	tick.it_value.tv_sec=0;
+	tick.it_value.tv_usec=20000;
+	  tick.it_interval.tv_sec = 0;
+	  tick.it_interval.tv_usec = 20000;
+	  res = setitimer(ITIMER_REAL, &tick, NULL);
+	  if (res) {
+	    printf("Set timer failed!!/n");
+	  }
+	  while(1){
 		menu();
 	}
 	return 0;
@@ -194,10 +210,10 @@ void initMyWayPoint(){
 //	mwp->addNewPositionWayPoint(500,-500,1000);
 //	mwp->addNewPositionWayPoint(0,0,1000);
 	mwp->generateCircle(20,0,0,700,750,0);
+	mwp->generateCircle(20,0,0,700,750,0);
+	mwp->generateCircle(20,0,0,700,750,0);
 	mwp->addNewPositionWayPoint(-740.766296,117.325836,100);
 	mwp->showPositionWayPoint();
-
-
 }
 void createHeader(){
 	logUtils->log_in("timestamp");
@@ -268,6 +284,7 @@ void menu(){
 
 void nextMenu(char cmd){
 	if(cmd=='0'){
+		//0 is the mode, press i can toggle show the vicon data or not
 		printf("you have switch debug param mode.\n");
 		show_flag=(show_flag+1)%2;
 	}
@@ -277,28 +294,33 @@ void nextMenu(char cmd){
 		case '0':
 			break;
 		case '1':
+			//this is test mode, i can change the param of pid wirelessly.
 			cmd_flag=PACKAGE_DEFINE_PARAM;
 			break;
 		case '2':
+			//the original position way point mode
+			//it will move to next point until it approach the current point
 			way_point_flag=1;
 			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 			sendLandSignal.mode=LAND_MODE_NONE;
 			break;
 		case '3':
+			//it is also a position way point mode
+			//in a fixed time, it will send a message to the aircraft
+			way_point_flag=2;
+			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+			sendLandSignal.mode=LAND_MODE_NONE;
+			break;
+		case '4':
+			//here i set way_point_flag=0, for i don't want the waypoint data influence
+			//the data of land data
+			way_point_flag=0;
 			cmd_flag=PACKAGE_DEFINE_LAND;
 			sendLandSignal.mode=LAND_MODE_SLOW;
 			break;
-		case '4':
-			cmd_flag=PACKAGE_DEFINE_LAND;
-			sendLandSignal.mode=LAND_MODE_FAST;
-			break;
 		case '5':
-			cmd_flag=PACKAGE_DEFINE_LAND;
-			sendLandSignal.mode=LAND_MODE_STOP;
 			break;
 		case '6':
-			cmd_flag=PACKAGE_DEFINE_LAND;
-			sendLandSignal.mode=LAND_MODE_NONE;
 			break;
 		case '7':
 			break;
@@ -317,10 +339,13 @@ void nextMenu(char cmd){
 	}
 }
 
-void* send_thread(void* ha=NULL){
-	clock_t temp;
-	while(1){
+void send_thread(int a){
+	static clock_t temp=0;
+	//while(1){
 		clock_start=clock();
+		printf("%ld\n",clock_start-temp);
+		fflush(stdout);
+		temp=clock_start;
 		//get vicon data from workstation
 		vicon->get_translation_data();
 		vicon->get_rotation_data();
@@ -358,24 +383,36 @@ void* send_thread(void* ha=NULL){
 					&sendLandSignal,1);
 		}
 		//sleep
-		usleep(20000);
+		//usleep(20000);
 //		temp=clock_end-clock_start;
 //		if(min_send_time>temp)min_send_time=temp;
 //		if(max_send_time<temp)max_send_time=temp;
 //		printf("min:%ld,max:%ld\n",min_send_time,max_send_time);
-	}
+	//}
 }
 void setSendPositionWayPointData(){
-	sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
-	sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
-	sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
-	if(mwp->gotoNextPositionWayPoint(TOLERANCE_MODE_DISTANCE,
-			receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
-		printf("it flies to next position way point.\n");
-		mwp->showPositionWayPoint();
+	static int i=0;
+	static int freq=0;
+	PositionWayPoint* pwp;
 
-		if(way_point_flag==1)
-				cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+	if(way_point_flag==1){
+		sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
+		sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
+		sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
+		if(mwp->gotoNextPositionWayPoint(TOLERANCE_MODE_DISTANCE,
+				receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
+			printf("it flies to next position way point.\n");
+			mwp->showPositionWayPoint();
+			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+		}
+	}else if(way_point_flag==2){
+		pwp=mwp->guideCircle(i++,1000,2,0,0,750,750,0);
+		memcpy(&sendPositionWayPointData,pwp,sizeof(PositionWayPoint));
+		if(freq++>10){
+			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+			freq=0;
+		}
+		delete pwp;
 	}
 }
 

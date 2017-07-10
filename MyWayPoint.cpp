@@ -164,10 +164,24 @@ void MyWayPoint::setTolerance(float distance){
 	this->tolerance.mode=TOLERANCE_MODE_DISTANCE;
 	this->tolerance.distance=distance;
 }
+//parameter introduction:
+// i: index of generate
+//freq: send freq
+//count: point count
+//speed:
+PositionWayPoint* MyWayPoint::guideCircle(int i,int count,float speed, float centerX,float centerY,float centerZ,
+	float radius, float firstAngle){
+	float dAngle=2*speed*MY_PI/count;
+	PositionWayPoint* pwp=new PositionWayPoint();
+	pwp->x=centerX+radius*cosf(dAngle*i+firstAngle);
+	pwp->y=centerY+radius*sinf(dAngle*i+firstAngle);
+	pwp->z=centerZ;
+	return pwp;
+}
 
 void MyWayPoint::generateCircle(int count, float centerX,float centerY,float centerZ,
 		float radius, float firstAngle){
-	float dAngle=MY_PI/count;
+	float dAngle=2*MY_PI/count;
 	int i;
 	for(i=0;i<count;i++){
 		this->addNewPositionWayPoint(centerX+radius*cosf(dAngle*i+firstAngle)
