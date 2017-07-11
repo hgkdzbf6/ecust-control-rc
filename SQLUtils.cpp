@@ -35,18 +35,18 @@ int SQLUtils::init(void){
 		"	vicon_x float,"+
 		"	vicon_y float,"+
 		"	vicon_z float,"+
-		"	vicon_pitch float,"+
-		"	vicon_roll float,"+
-		"	vicon_yaw float,"+
 		"	vicon_vx float,"+
 		"	vicon_vy float,"+
 		"	vicon_vz float,"+
-		"	vicon_battery int,"+
-		"	vicon_cpu_load int,"+
-		"	vicon_count int,"+
-		"	vicon_set_position float,"+
-		"	vicon_set_velocity float,"+
-		"	vicon_calc_thrust float,"+
+		"	vicon_yaw float,"+
+		"	sp_x float,"+
+		"	sp_y float,"+
+		"	sp_z float,"+
+		"	sp_flag int,"+
+		"	debug_1 float,"+
+		"	debug_2 float,"+
+		"	debug_3 float,"+
+		"	debug_4 float,"+
 		"	primary key(vicon_timestamp)"+
 	")engine=innodb default charset=utf8;";
 	res=mysql_query(&mysql,
@@ -64,65 +64,65 @@ void SQLUtils::dataIn(SqlData *sqlData){
 			"	vicon_x,"+
 			"	vicon_y,"+
 			"	vicon_z,"+
-			"	vicon_pitch,"+
-			"	vicon_roll,"+
-			"	vicon_yaw,"+
 			"	vicon_vx,"+
 			"	vicon_vy,"+
 			"	vicon_vz,"+
-			"	vicon_battery,"+
-			"	vicon_cpu_load,"+
-			"	vicon_count,"+
-			"	vicon_set_position,"+
-			"	vicon_set_velocity,"+
-			"	vicon_calc_thrust)"+
+			"	vicon_yaw,"+
+			"	sp_x,"+
+			"	sp_y,"+
+			"	sp_z,"+
+			"	sp_flag,"+
+			"	debug_1,"+
+			"	debug_2,"+
+			"	debug_3,"+
+			"	debug_4)"+
 			"values(";
-	sprintf(temp,"%d",sqlData->viconData.timestamp);
+	sprintf(temp,"%d",sqlData->timestamp);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.x);
+	sprintf(temp,"%f",sqlData->x);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.y);
+	sprintf(temp,"%f",sqlData->y);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.z);
+	sprintf(temp,"%f",sqlData->z);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.pitch);
+	sprintf(temp,"%f",sqlData->vx);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.roll);
+	sprintf(temp,"%f",sqlData->vy);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.yaw);
+	sprintf(temp,"%f",sqlData->vz);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.vx);
+	sprintf(temp,"%f",sqlData->yaw);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.vy);
+	sprintf(temp,"%f",sqlData->sp_x);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->viconData.vz);
+	sprintf(temp,"%f",sqlData->sp_y);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%d",sqlData->state.battery);
+	sprintf(temp,"%f",sqlData->sp_z);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%d",sqlData->state.cpu_load);
+	sprintf(temp,"%d",sqlData->sp_flag);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%d",sqlData->state.vicon_count);
+	sprintf(temp,"%f",sqlData->debug_1);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->set_position);
+	sprintf(temp,"%f",sqlData->debug_2);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->set_velocity);
+	sprintf(temp,"%f",sqlData->debug_3);
 	query+=temp;
 	query+=",";
-	sprintf(temp,"%f",sqlData->calc_thrust);
+	sprintf(temp,"%f",sqlData->debug_4);
 	query+=temp;
 	query+=");";
 	printf("%s",query.c_str());

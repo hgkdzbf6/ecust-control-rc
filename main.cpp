@@ -38,6 +38,9 @@ PositionWayPointData sendPositionWayPointData={0};
 LandSignal sendLandSignal={LAND_MODE_NONE};
 LandSignal receiveLandSignal={LAND_MODE_NONE};
 
+NormalData sendNormalData={0};
+NormalData receiveNormalData={0};
+
 PackageDefine pack_id;
 unsigned char allDataBuffer[256]={0};
 //MyViconData receivedViconData;
@@ -79,13 +82,14 @@ void nextMenu(char cmd);
 void createHeader();
 void showReceiveParamDebugOnce();
 void showSendParamDebug();
-void setViconData();
 void setSendParamDebug();
 void setSendDebugData();
 void initMyWayPoint();
 void showSendDebugData();
 void showDebugData(int pre_timestamp);
 void setSendPositionWayPointData();
+void setSendNormalData();
+void showReceiveNormalData();
 void showReceivePositionWayPointData();
 void showSendPositionWayPointDataOnce();
 //manual:
@@ -137,7 +141,7 @@ int main(int argc, char* argv[]){
 			cmd_flag=PACKAGE_DEFINE_PARAM;
 		}
 	}else{
-		cmd_flag=PACKAGE_DEFINE_DEBUG;
+		cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
 	}
 
 	sendParamDebug.kp_v=0.5f;
@@ -224,29 +228,29 @@ void createHeader(){
 	logUtils->log_pause();
 	logUtils->log_in("z");
 	logUtils->log_pause();
-	logUtils->log_in("pitch");
-	logUtils->log_pause();
-	logUtils->log_in("roll");
-	logUtils->log_pause();
-	logUtils->log_in("yaw");
-	logUtils->log_pause();
 	logUtils->log_in("vx");
 	logUtils->log_pause();
 	logUtils->log_in("vy");
 	logUtils->log_pause();
 	logUtils->log_in("vz");
 	logUtils->log_pause();
-	logUtils->log_in("battery");
+	logUtils->log_in("yaw");
 	logUtils->log_pause();
-	logUtils->log_in("cpu_load");
+	logUtils->log_in("sp_x");
 	logUtils->log_pause();
-	logUtils->log_in("vicon_count");
+	logUtils->log_in("sp_y");
 	logUtils->log_pause();
-	logUtils->log_in("set_position");
+	logUtils->log_in("sp_z");
 	logUtils->log_pause();
-	logUtils->log_in("set_velocity");
+	logUtils->log_in("sp_flag");
 	logUtils->log_pause();
-	logUtils->log_in("calc_thrust");
+	logUtils->log_in("debug_1");
+	logUtils->log_pause();
+	logUtils->log_in("debug_2");
+	logUtils->log_pause();
+	logUtils->log_in("debug_3");
+	logUtils->log_pause();
+	logUtils->log_in("debug_4");
 	logUtils->log_end();
 }
 
@@ -307,14 +311,16 @@ void nextMenu(char cmd){
 		case '3':
 			//it is also a position way point mode
 			//in a fixed time, it will send a message to the aircraft
-			way_point_flag=2;
-			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
-			sendLandSignal.mode=LAND_MODE_NONE;
+			sendNormalData.sp_flag=1;
+			//way_point_flag=2;
+			//cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+			///sendLandSignal.mode=LAND_MODE_NONE;
 			break;
 		case '4':
 			//here i set way_point_flag=0, for i don't want the waypoint data influence
 			//the data of land data
 			way_point_flag=0;
+			sendNormalData.sp_flag=2;
 			cmd_flag=PACKAGE_DEFINE_LAND;
 			sendLandSignal.mode=LAND_MODE_SLOW;
 			break;
@@ -341,9 +347,8 @@ void nextMenu(char cmd){
 
 void send_thread(int a){
 	static clock_t temp=0;
-	//while(1){
 		clock_start=clock();
-		printf("%ld\n",clock_start-temp);
+		//printf("%ld\n",clock_start-temp);
 		fflush(stdout);
 		temp=clock_start;
 		//get vicon data from workstation
@@ -353,12 +358,13 @@ void send_thread(int a){
 		vicon->get_speed();
 		vicon->update_data();
 		setSendPositionWayPointData();
-		clock_end=clock();
 		sendCmdData.cmd=cmd_flag;
-//		my_send(fd,PACKAGE_DEFINE_CMD,
-//					getPackageLength(PACKAGE_DEFINE_CMD),
-//					&sendCmdData,1);
-		if(sendCmdData.cmd==PACKAGE_DEFINE_DEBUG){
+		if(sendCmdData.cmd==PACKAGE_DEFINE_NOMAL_DATA){
+			setSendNormalData();
+			my_send(fd,PACKAGE_DEFINE_NOMAL_DATA,
+					getPackageLength(PACKAGE_DEFINE_NOMAL_DATA)
+					,&sendNormalData,1);
+		}else if(sendCmdData.cmd==PACKAGE_DEFINE_DEBUG){
 			setSendDebugData();
 			//showSendDebugData();
 			my_send(fd,PACKAGE_DEFINE_DEBUG,
@@ -382,38 +388,38 @@ void send_thread(int a){
 					getPackageLength(PACKAGE_DEFINE_LAND),
 					&sendLandSignal,1);
 		}
-		//sleep
-		//usleep(20000);
-//		temp=clock_end-clock_start;
-//		if(min_send_time>temp)min_send_time=temp;
-//		if(max_send_time<temp)max_send_time=temp;
-//		printf("min:%ld,max:%ld\n",min_send_time,max_send_time);
-	//}
 }
 void setSendPositionWayPointData(){
 	static int i=0;
 	static int freq=0;
 	PositionWayPoint* pwp;
-
-	if(way_point_flag==1){
-		sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
-		sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
-		sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
-		if(mwp->gotoNextPositionWayPoint(TOLERANCE_MODE_DISTANCE,
-				receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
-			printf("it flies to next position way point.\n");
-			mwp->showPositionWayPoint();
-			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
-		}
-	}else if(way_point_flag==2){
-		pwp=mwp->guideCircle(i++,1000,2,0,0,750,750,0);
-		memcpy(&sendPositionWayPointData,pwp,sizeof(PositionWayPoint));
-		if(freq++>10){
-			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
-			freq=0;
-		}
+	if(sendNormalData.sp_flag==1){
+		pwp=mwp->guideCircle(i++,1000,1,0,0,750,750,0);
+		sendNormalData.sp_x=pwp->x;
+		sendNormalData.sp_y=pwp->y;
+		sendNormalData.sp_z=pwp->z;
+		//cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 		delete pwp;
 	}
+//	if(way_point_flag==1){
+//		sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
+//		sendPositionWayPointData.y=mwp->sendCurrentPositionWayPoint()->y;
+//		sendPositionWayPointData.z=mwp->sendCurrentPositionWayPoint()->z;
+//		if(mwp->gotoNextPositionWayPoint(TOLERANCE_MODE_DISTANCE,
+//				receiveDebugData.x,receiveDebugData.y,receiveDebugData.z)){
+//			printf("it flies to next position way point.\n");
+//			mwp->showPositionWayPoint();
+//			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+//		}
+//	}else if(way_point_flag==2){
+//		if(freq++>10){
+//			pwp=mwp->guideCircle(i++,1000,2,0,0,750,750,0);
+//			memcpy(&sendPositionWayPointData,pwp,sizeof(PositionWayPoint));
+//			cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
+//			freq=0;
+//			delete pwp;
+//		}
+//	}
 }
 
 
@@ -454,7 +460,7 @@ void* receive_thread(void* ha=NULL){
 				memcpy(&receiveParamDebug
 						,allDataBuffer,getPackageLength(pack_id));
 				showReceiveParamDebugOnce();
-				cmd_flag=PACKAGE_DEFINE_DEBUG;
+				cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
 				break;
 			case PACKAGE_DEFINE_CMD:
 				break;
@@ -462,13 +468,19 @@ void* receive_thread(void* ha=NULL){
 				memcpy(&receivePositionWayPointData
 						,allDataBuffer,getPackageLength(pack_id));
 				showReceivePositionWayPointData();
-				cmd_flag=PACKAGE_DEFINE_DEBUG;
+				cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
 				break;
 			case PACKAGE_DEFINE_LAND:
 				memcpy(&receiveLandSignal,allDataBuffer,
 						getPackageLength(pack_id));
 				printf("aircraft will land soon!\n");
-				cmd_flag=PACKAGE_DEFINE_DEBUG;
+				cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
+				break;
+			case PACKAGE_DEFINE_NOMAL_DATA:
+				memcpy(&receiveNormalData,allDataBuffer
+						,getPackageLength(pack_id));
+				showReceiveNormalData();
+				cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
 				break;
 			default:
 				break;
@@ -478,56 +490,40 @@ void* receive_thread(void* ha=NULL){
 }
 
 void packSqlData(){
-	sqlData.viconData.timestamp=receiveDebugData.timestamp;
-	sqlData.viconData.x=receiveDebugData.x;
-	sqlData.viconData.y=receiveDebugData.y;
-	sqlData.viconData.z=receiveDebugData.z;
-	sqlData.viconData.pitch=receiveDebugData.pitch;
-	sqlData.viconData.roll=receiveDebugData.roll;
-	sqlData.viconData.yaw=receiveDebugData.yaw;
-	sqlData.viconData.vx=receiveDebugData.vx;
-	sqlData.viconData.vy=receiveDebugData.vy;
-	sqlData.viconData.vz=receiveDebugData.vz;
-
-	sqlData.state.battery=receiveDebugData.battery;
-	sqlData.state.cpu_load=receiveDebugData.cpu_load;
-	sqlData.state.vicon_count=receiveDebugData.vicon_count;
-	sqlData.set_position=receiveDebugData.set_position;
-	sqlData.set_velocity=receiveDebugData.set_velocity;
-	sqlData.calc_thrust=receiveDebugData.calc_thrust;
+	memcpy(&sqlData,&receiveNormalData,sizeof(NormalData));
 }
 void packSimpleData(){
-	logUtils->log_in(receiveDebugData.timestamp);
+	logUtils->log_in(receiveNormalData.timestamp);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.x);
+	logUtils->log_in(receiveNormalData.x);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.y);
+	logUtils->log_in(receiveNormalData.y);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.z);
+	logUtils->log_in(receiveNormalData.z);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.pitch);
+	logUtils->log_in(receiveNormalData.vx);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.roll);
+	logUtils->log_in(receiveNormalData.vy);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.yaw);
+	logUtils->log_in(receiveNormalData.vz);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.vx);
+	logUtils->log_in(receiveNormalData.yaw);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.vy);
+	logUtils->log_in(receiveNormalData.sp_x);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.vz);
+	logUtils->log_in(receiveNormalData.sp_y);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.battery);
+	logUtils->log_in(receiveNormalData.sp_z);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.cpu_load);
+	logUtils->log_in(receiveNormalData.sp_flag);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.vicon_count);
+	logUtils->log_in(receiveNormalData.debug_1);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.set_position);
+	logUtils->log_in(receiveNormalData.debug_2);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.set_velocity);
+	logUtils->log_in(receiveNormalData.debug_3);
 	logUtils->log_pause();
-	logUtils->log_in(receiveDebugData.calc_thrust);
+	logUtils->log_in(receiveNormalData.debug_4);
 	logUtils->log_end();
 }
 void setParamDebug(){
@@ -545,24 +541,22 @@ void setSendDebugData(){
 	sendDebugData.yaw=vicon->rotation(2);
 	sendDebugData.timestamp=vicon->tp(0);
 }
+void setSendNormalData(){
+	sendNormalData.timestamp=vicon->tp(0);
+	sendNormalData.x=vicon->translation(0);
+	sendNormalData.y=vicon->translation(1);
+	sendNormalData.z=vicon->translation(2);
+	sendNormalData.vx=vicon->speed(0);
+	sendNormalData.vy=vicon->speed(1);
+	sendNormalData.vz=vicon->speed(2);
+	sendNormalData.yaw=vicon->rotation(2);
+}
 void showSendDebugData(){
 	if(show_flag!=0){
 		printf("sendDebugData.z:%f\n", sendDebugData.z);
 		printf("sendDebugData.vz%f\n", sendDebugData.vz);
 		printf("sendDebugData.timestamp:%d\n", sendDebugData.timestamp);
 	}
-}
-void setViconData(){
-	viconData.x=vicon->translation(0);
-	viconData.y=vicon->translation(1);
-	viconData.z=vicon->translation(2);
-	viconData.pitch=vicon->translation(0);
-	viconData.roll=vicon->translation(1);
-	viconData.yaw=vicon->translation(2);
-	viconData.vx=vicon->speed(0);
-	viconData.vy=vicon->speed(1);
-	viconData.vz=vicon->speed(2);
-	viconData.timestamp=vicon->tp(0);
 }
 void setSendParamDebug(){
 	sendParamDebug.z=vicon->translation(2);
@@ -612,7 +606,7 @@ void showReceiveParamDebugOnce(){
 		printf("\tkp_v:%f\n",receiveParamDebug.kp_v);
 		printf("\tki_v:%f\n",receiveParamDebug.ki_v);
 		printf("\tthrust:%d\n",receiveParamDebug.thrust);
-		printf("\tcalc_thrust:%f\n",receiveParamDebug.calc_thrust);
+		printf("\tcalc_thrustshowReceiveNormalData:%f\n",receiveParamDebug.calc_thrust);
 		show_flag=0;
 	}while(show_flag==1);
 }
@@ -669,4 +663,23 @@ void showSendParamDebugOnce(){
 		printf("\tcalc_thrust:%f\n",sendParamDebug.calc_thrust);
 		show_flag=0;
 	}while(show_flag==1);
+}
+void showReceiveNormalData(){
+	if(show_flag!=0){
+		printf("\n\nreceived ok!\n");
+		printf("sp_flag:%d\n",receiveNormalData.sp_flag);
+		printf("debug_1:%f\n",receiveNormalData.debug_1);
+		printf("debug_2:%f\n",receiveNormalData.debug_2);
+		printf("debug_3:%f\n",receiveNormalData.debug_3);
+		printf("debug_4:%f\n",receiveNormalData.debug_4);
+		printf("timestamp:%d\n",receiveNormalData.timestamp);
+
+		printf("yaw:%f\n",receiveNormalData.yaw);
+
+		printf("x:%f\tvx:%f\n",receiveNormalData.x,receiveNormalData.vx);
+		printf("y:%f\tvy:%f\n",receiveNormalData.y,receiveNormalData.vy);
+		printf("z:%f\tvz:%f\n",receiveNormalData.z,receiveNormalData.vz);
+		printf("sp_x:%f\tsp_y:%f\tsp_z:%f\n",receiveNormalData.sp_x
+				,receiveNormalData.sp_y,receiveNormalData.sp_z);
+	}
 }
