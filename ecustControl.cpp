@@ -400,6 +400,10 @@ void setSendPositionWayPointData(){
 		sendNormalData.sp_z=pwp->z;
 		//cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
 		delete pwp;
+	}else if(sendNormalData.sp_flag==0){
+		sendNormalData.sp_x=750;
+		sendNormalData.sp_y=0;
+		sendNormalData.sp_z=750;
 	}
 //	if(way_point_flag==1){
 //		sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
