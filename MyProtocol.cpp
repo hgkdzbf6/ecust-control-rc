@@ -50,6 +50,7 @@ int receive_single(int fd,unsigned char* result){
 	return read_callback(fd,result,1);
 }
 
+
 //return 0: package is not completed
 //return 1:package is available
 ReceiveState my_receive(
@@ -142,6 +143,8 @@ unsigned char getPackageLength(PackageDefine pd){
 		return LAND_SIGNAL_LENGTH;
 	case PACKAGE_DEFINE_NOMAL_DATA:
 		return NORMAL_DATA_LENGTH;
+	case PACKAGE_DEFINE_DEBUG_ARRAY:
+		return DEBUG_ARRAY_LENGTH;
 	default:
 		return -1;
 	}

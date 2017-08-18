@@ -14,6 +14,9 @@
 #include <curses.h>
 using namespace zbf;
 
+#define BALL_MODE
+#define LOG_DEBUG_ARRAY
+//#define LOG_NORMAL
 
 ViconUtils *vicon;
 LogUtils *logUtils;
@@ -41,8 +44,9 @@ LandSignal receiveLandSignal={LAND_MODE_NONE};
 NormalData sendNormalData={0};
 NormalData receiveNormalData={0};
 
+DebugArray receiveDebugArray={{0},{0}};
 PackageDefine pack_id;
-unsigned char allDataBuffer[256]={0};
+unsigned char allDataBuffer[400]={0};
 //MyViconData receivedViconData;
 //SensorData receivedSensorData;
 //SystemState receivedSystemState;
@@ -66,7 +70,7 @@ unsigned char pl=VICON_DATA_LENGTH;
 #endif
 
 
-unsigned char buffer[255];
+unsigned char buffer[400];
 unsigned char record_flag=0;
 unsigned char cmd_flag=PACKAGE_DEFINE_DEBUG;
 unsigned char show_flag=1;
@@ -77,6 +81,7 @@ void send_thread(int a);
 void* receive_thread(void*);
 void menu();
 void packSqlData();
+void packDebugArray();
 void packSimpleData();
 void nextMenu(char cmd);
 void createHeader();
@@ -88,8 +93,10 @@ void initMyWayPoint();
 void showSendDebugData();
 void showDebugData(int pre_timestamp);
 void setSendPositionWayPointData();
+void setBallData();
 void setSendNormalData();
 void showReceiveNormalData();
+void showReceiveDebugArray();
 void showReceivePositionWayPointData();
 void showSendPositionWayPointDataOnce();
 //manual:
@@ -138,7 +145,7 @@ int main(int argc, char* argv[]){
 		if(strcmp(argv[4],"5")==0){
 			cmd_flag=PACKAGE_DEFINE_DEBUG;
 		}else{
-			cmd_flag=PACKAGE_DEFINE_PARAM;
+			cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
 		}
 	}else{
 		cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
@@ -166,11 +173,15 @@ int main(int argc, char* argv[]){
 		printf("sql utils init ok.\n");
 	}else if(record_flag==2){
 		logUtils=new LogUtils();
+#ifdef LOG_NORMAL
 		createHeader();
+#endif
 		printf("log utils init ok.\n");
 	}else{
 		printf("you have switch off the mysql switch.\n");
 	}
+
+	//sendNormalData.sp_flag=0;
 
 	fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 	struct termios port_settings; // structure to store the port settings in
@@ -198,6 +209,7 @@ int main(int argc, char* argv[]){
 	  if (res) {
 	    printf("Set timer failed!!/n");
 	  }
+	  sendNormalData.sp_flag=PACKAGE_DEFINE_NOMAL_DATA;
 	  while(1){
 		menu();
 	}
@@ -325,8 +337,10 @@ void nextMenu(char cmd){
 			sendLandSignal.mode=LAND_MODE_SLOW;
 			break;
 		case '5':
+			sendNormalData.sp_flag=2;
 			break;
 		case '6':
+			sendNormalData.sp_flag=PACKAGE_DEFINE_DEBUG_ARRAY;
 			break;
 		case '7':
 			break;
@@ -357,36 +371,53 @@ void send_thread(int a){
 		vicon->check();
 		vicon->get_speed();
 		vicon->update_data();
-		setSendPositionWayPointData();
+		vicon->get_ball();
+
+
+
+		//setSendPositionWayPointData();
+		setBallData();
 		sendCmdData.cmd=cmd_flag;
-		if(sendCmdData.cmd==PACKAGE_DEFINE_NOMAL_DATA){
+		switch(sendCmdData.cmd){
+		case PACKAGE_DEFINE_CMD:
+			my_send(fd,PACKAGE_DEFINE_CMD,
+					getPackageLength(PACKAGE_DEFINE_CMD),
+					&sendCmdData,1);
+			break;
+		case PACKAGE_DEFINE_NOMAL_DATA:
 			setSendNormalData();
 			my_send(fd,PACKAGE_DEFINE_NOMAL_DATA,
 					getPackageLength(PACKAGE_DEFINE_NOMAL_DATA)
 					,&sendNormalData,1);
-		}else if(sendCmdData.cmd==PACKAGE_DEFINE_DEBUG){
+			sendNormalData.sp_flag=PACKAGE_DEFINE_NOMAL_DATA;
+			break;
+		case PACKAGE_DEFINE_DEBUG:
 			setSendDebugData();
 			//showSendDebugData();
 			my_send(fd,PACKAGE_DEFINE_DEBUG,
 				getPackageLength(PACKAGE_DEFINE_DEBUG),
 				&sendDebugData,1);
-		}else if(sendCmdData.cmd==PACKAGE_DEFINE_PARAM){
+			break;
+		case PACKAGE_DEFINE_PARAM:
 			setSendParamDebug();
 			showSendParamDebug();
 			my_send(fd,PACKAGE_DEFINE_PARAM,
 					getPackageLength(PACKAGE_DEFINE_PARAM),
 					&sendParamDebug,1);
-		}else if(sendCmdData.cmd==PACKAGE_DEFINE_POSITION_WAY_POINT){
+			break;
+		case PACKAGE_DEFINE_POSITION_WAY_POINT:
 			//setSendPositionWayPointData();
 			showSendPositionWayPointDataOnce();
 			my_send(fd,PACKAGE_DEFINE_POSITION_WAY_POINT,
 					getPackageLength(PACKAGE_DEFINE_POSITION_WAY_POINT),
 					&sendPositionWayPointData,1);
-		}else if(sendCmdData.cmd==PACKAGE_DEFINE_LAND){
+			break;
+		case PACKAGE_DEFINE_LAND:
 			printf("land signal sent!\n");
 			my_send(fd,PACKAGE_DEFINE_LAND,
 					getPackageLength(PACKAGE_DEFINE_LAND),
 					&sendLandSignal,1);
+			break;
 		}
 }
 void setSendPositionWayPointData(){
@@ -394,16 +425,16 @@ void setSendPositionWayPointData(){
 	static int freq=0;
 	PositionWayPoint* pwp;
 	if(sendNormalData.sp_flag==1){
-		pwp=mwp->guideCircle(i++,1000,1,0,0,750,750,0);
+		//pwp=mwp->guideCircle(i++,1000,1,0,0,750,750,0);
+		pwp=mwp->generateList(i++,POSITION_DATA_LENGTH-1);
 		sendNormalData.sp_x=pwp->x;
 		sendNormalData.sp_y=pwp->y;
 		sendNormalData.sp_z=pwp->z;
 		//cmd_flag=PACKAGE_DEFINE_POSITION_WAY_POINT;
-		delete pwp;
 	}else if(sendNormalData.sp_flag==0){
-		sendNormalData.sp_x=750;
-		sendNormalData.sp_y=0;
-		sendNormalData.sp_z=750;
+		sendNormalData.sp_x=458;
+		sendNormalData.sp_y=-1242;
+		sendNormalData.sp_z=200;
 	}
 //	if(way_point_flag==1){
 //		sendPositionWayPointData.x=mwp->sendCurrentPositionWayPoint()->x;
@@ -426,6 +457,15 @@ void setSendPositionWayPointData(){
 //	}
 }
 
+void setBallData(){
+	sendNormalData.sp_x=vicon->ball_position(0);
+	sendNormalData.sp_y=vicon->ball_position(1);
+	sendNormalData.sp_z=vicon->ball_position(2);
+	sendNormalData.debug_1=vicon->ball_timestamp();
+	sendNormalData.debug_2=vicon->ball_speed(0);
+	sendNormalData.debug_3=vicon->ball_speed(1);
+	sendNormalData.debug_4=vicon->ball_speed(2);
+}
 
 void* receive_thread(void* ha=NULL){
 //	int fd,
@@ -443,7 +483,9 @@ void* receive_thread(void* ha=NULL){
 				packSqlData();
 				sql->dataIn(&sqlData);
 			}else if(record_flag==2){
+#ifdef LOG_NORMAL
 				packSimpleData();
+#endif
 			}
 			switch(pack_id){
 			case PACKAGE_DEFINE_STATUS:
@@ -486,6 +528,16 @@ void* receive_thread(void* ha=NULL){
 				showReceiveNormalData();
 				cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
 				break;
+			case PACKAGE_DEFINE_DEBUG_ARRAY:
+					memcpy(&receiveDebugArray,allDataBuffer,
+							getPackageLength(pack_id));
+					showReceiveDebugArray();
+#ifdef LOG_DEBUG_ARRAY
+					packDebugArray();
+#endif
+					cmd_flag=PACKAGE_DEFINE_NOMAL_DATA;
+					sendNormalData.sp_flag=1;
+					break;
 			default:
 				break;
 			}
@@ -495,6 +547,15 @@ void* receive_thread(void* ha=NULL){
 
 void packSqlData(){
 	memcpy(&sqlData,&receiveNormalData,sizeof(NormalData));
+}
+void packDebugArray(){
+	int i=0;
+	for(i=0;i<20;i++){
+		logUtils->log_in(receiveDebugArray.time[i]);
+		logUtils->log_pause();
+		logUtils->log_in(receiveDebugArray.data[i]);
+		logUtils->log_end();
+	}
 }
 void packSimpleData(){
 	logUtils->log_in(receiveNormalData.timestamp);
@@ -686,4 +747,13 @@ void showReceiveNormalData(){
 		printf("sp_x:%f\tsp_y:%f\tsp_z:%f\n",receiveNormalData.sp_x
 				,receiveNormalData.sp_y,receiveNormalData.sp_z);
 	}
+}
+void showReceiveDebugArray(){
+	int i;
+//	if(show_flag!=0){
+		printf("DebugData:\n");
+		for(i=0;i<20;i++){
+			printf("t:%d  roll:%f\n",receiveDebugArray.time[i],receiveDebugArray.data[i]);
+		}
+//	}
 }

@@ -80,7 +80,9 @@ typedef PositionWayPoint PositionPoint;
 typedef VelocityWayPoint VelocityPoint;
 typedef WayPoint RealPoint;
 
+#define POSITION_DATA_LENGTH 564
 class MyWayPoint {
+
 public:
 	MyWayPoint();
 	MyWayPoint(WAY_POINT_TYPE wpt);
@@ -103,6 +105,7 @@ public:
 			float radius, float firstAngle);
 	void generateSin(int count,int waveCount,float amplitude,float firstAngle,
 			float len,float x,float y,float z);
+	PositionWayPoint* generateList(int count,int len);
 private:
 	WAY_POINT_TYPE wpt;
 	Tolerance tolerance;
