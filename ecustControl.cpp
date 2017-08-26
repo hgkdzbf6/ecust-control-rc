@@ -364,61 +364,58 @@ void nextMenu(char cmd){
 
 void send_thread(int a){
 	static clock_t temp=0;
-		clock_start=clock();
-		//printf("%ld\n",clock_start-temp);
-		fflush(stdout);
-		temp=clock_start;
-		//get vicon data from workstation
-		vicon->get_translation_data();
-		vicon->get_rotation_data();
-		vicon->check();
-		vicon->get_speed();
-		vicon->update_data();
-		vicon->get_ball();
+	clock_start = clock();
+	//printf("%ld\n",clock_start-temp);
+	fflush(stdout);
+	temp = clock_start;
+	//get vicon data from workstation
+	vicon->get_translation_data();
+	vicon->get_rotation_data();
+	vicon->check();
+	vicon->get_speed();
+	vicon->update_data();
+	vicon->get_ball();
+	//setSendPositionWayPointData();
+	setBallData();
+	logBallData();
+	sendCmdData.cmd = cmd_flag;
+	switch (sendCmdData.cmd) {
+	case PACKAGE_DEFINE_CMD:
+		my_send(fd, PACKAGE_DEFINE_CMD, getPackageLength(PACKAGE_DEFINE_CMD),
+				&sendCmdData, 1);
+		break;
+	case PACKAGE_DEFINE_NOMAL_DATA:
+		setSendNormalData();
+		my_send(fd, PACKAGE_DEFINE_NOMAL_DATA,
+				getPackageLength(PACKAGE_DEFINE_NOMAL_DATA), &sendNormalData,
+				1);
+		sendNormalData.sp_flag = PACKAGE_DEFINE_NOMAL_DATA;
+		break;
+	case PACKAGE_DEFINE_DEBUG:
+		setSendDebugData();
+		//showSendDebugData();
+		my_send(fd, PACKAGE_DEFINE_DEBUG,
+				getPackageLength(PACKAGE_DEFINE_DEBUG), &sendDebugData, 1);
+		break;
+	case PACKAGE_DEFINE_PARAM:
+		setSendParamDebug();
+		showSendParamDebug();
+		my_send(fd, PACKAGE_DEFINE_PARAM,
+				getPackageLength(PACKAGE_DEFINE_PARAM), &sendParamDebug, 1);
+		break;
+	case PACKAGE_DEFINE_POSITION_WAY_POINT:
 		//setSendPositionWayPointData();
-		setBallData();
-		sendCmdData.cmd=cmd_flag;
-		switch(sendCmdData.cmd){
-		case PACKAGE_DEFINE_CMD:
-			my_send(fd,PACKAGE_DEFINE_CMD,
-					getPackageLength(PACKAGE_DEFINE_CMD),
-					&sendCmdData,1);
-			break;
-		case PACKAGE_DEFINE_NOMAL_DATA:
-			setSendNormalData();
-			my_send(fd,PACKAGE_DEFINE_NOMAL_DATA,
-					getPackageLength(PACKAGE_DEFINE_NOMAL_DATA)
-					,&sendNormalData,1);
-			sendNormalData.sp_flag=PACKAGE_DEFINE_NOMAL_DATA;
-			break;
-		case PACKAGE_DEFINE_DEBUG:
-			setSendDebugData();
-			//showSendDebugData();
-			my_send(fd,PACKAGE_DEFINE_DEBUG,
-				getPackageLength(PACKAGE_DEFINE_DEBUG),
-				&sendDebugData,1);
-			break;
-		case PACKAGE_DEFINE_PARAM:
-			setSendParamDebug();
-			showSendParamDebug();
-			my_send(fd,PACKAGE_DEFINE_PARAM,
-					getPackageLength(PACKAGE_DEFINE_PARAM),
-					&sendParamDebug,1);
-			break;
-		case PACKAGE_DEFINE_POSITION_WAY_POINT:
-			//setSendPositionWayPointData();
-			showSendPositionWayPointDataOnce();
-			my_send(fd,PACKAGE_DEFINE_POSITION_WAY_POINT,
-					getPackageLength(PACKAGE_DEFINE_POSITION_WAY_POINT),
-					&sendPositionWayPointData,1);
-			break;
-		case PACKAGE_DEFINE_LAND:
-			printf("land signal sent!\n");
-			my_send(fd,PACKAGE_DEFINE_LAND,
-					getPackageLength(PACKAGE_DEFINE_LAND),
-					&sendLandSignal,1);
-			break;
-		}
+		showSendPositionWayPointDataOnce();
+		my_send(fd, PACKAGE_DEFINE_POSITION_WAY_POINT,
+				getPackageLength(PACKAGE_DEFINE_POSITION_WAY_POINT),
+				&sendPositionWayPointData, 1);
+		break;
+	case PACKAGE_DEFINE_LAND:
+		printf("land signal sent!\n");
+		my_send(fd, PACKAGE_DEFINE_LAND, getPackageLength(PACKAGE_DEFINE_LAND),
+				&sendLandSignal, 1);
+		break;
+	}
 }
 void setSendPositionWayPointData(){
 	static int i=0;
