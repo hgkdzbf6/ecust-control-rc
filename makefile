@@ -11,7 +11,7 @@ CFLAGS=-c -Wall -ansi -std=c99
 
 # Linking
 LINK          = g++
-LFLAGS        = -Wl,-rpath=libs #-L./libs/ -lViconDataStreamSDK_CPP
+LFLAGS        = -Wl,-rpath=libs -std=c++11 #-L./libs/ -lViconDataStreamSDK_CPP
 LIBS          = -lm -lpthread -L./libs/ -lViconDataStreamSDK_CPP  -lmysqlclient
 
 # Source & Target

@@ -20,6 +20,7 @@ using namespace zbf;
 
 ViconUtils *vicon;
 LogUtils *logUtils;
+LogUtils *logUtils2;
 SQLUtils *sql;
 MyWayPoint  *mwp;
 MyViconData viconData;
@@ -94,6 +95,7 @@ void showSendDebugData();
 void showDebugData(int pre_timestamp);
 void setSendPositionWayPointData();
 void setBallData();
+void logBallData();
 void setSendNormalData();
 void showReceiveNormalData();
 void showReceiveDebugArray();
@@ -172,7 +174,8 @@ int main(int argc, char* argv[]){
 		sql=new SQLUtils();
 		printf("sql utils init ok.\n");
 	}else if(record_flag==2){
-		logUtils=new LogUtils();
+		logUtils = new LogUtils();
+		logUtils2 = new LogUtils(1);
 #ifdef LOG_NORMAL
 		createHeader();
 #endif
@@ -372,9 +375,6 @@ void send_thread(int a){
 		vicon->get_speed();
 		vicon->update_data();
 		vicon->get_ball();
-
-
-
 		//setSendPositionWayPointData();
 		setBallData();
 		sendCmdData.cmd=cmd_flag;
@@ -465,6 +465,23 @@ void setBallData(){
 	sendNormalData.debug_2=vicon->ball_speed(0);
 	sendNormalData.debug_3=vicon->ball_speed(1);
 	sendNormalData.debug_4=vicon->ball_speed(2);
+}
+void logBallData() {
+	logUtils2->log_in((float) vicon->ball_position(0));
+	logUtils2->log_pause();
+	logUtils2->log_in((float) vicon->ball_position(1));
+	logUtils2->log_pause();
+	logUtils2->log_in((float) vicon->ball_position(2));
+	logUtils2->log_pause();
+	logUtils2->log_in((float) vicon->ball_timestamp());
+	logUtils2->log_pause();
+	logUtils2->log_in((float) vicon->ball_speed(0));
+	logUtils2->log_pause();
+	logUtils2->log_in((float) vicon->ball_speed(1));
+	logUtils2->log_pause();
+	logUtils2->log_in((float) vicon->ball_speed(2));
+	logUtils2->log_pause();
+	logUtils2->log_end();
 }
 
 void* receive_thread(void* ha=NULL){

@@ -12,6 +12,8 @@
 #include <iomanip>
 #include <sstream>
 #include <time.h>
+#include <string>
+#include <string.h>
 #include <unistd.h>
 //#include <cstdint>
 
@@ -19,7 +21,7 @@ typedef float single;
 #define DATA_NUM 6
 class LogUtils {
 public:
-	LogUtils();
+	LogUtils(int i = 0);
 	void log_in(int num);
 	void log_in(long num);
 	void log_in(std::string num);
@@ -36,6 +38,7 @@ private:
 	std::ostringstream timeStream;
 	std::string timeStr;
 	std::string createName();
+	std::string createName(int i);
 	std::string createHeader();
 	int data[DATA_NUM];
 	std::ofstream* _file;
