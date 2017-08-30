@@ -62,6 +62,7 @@ public:
 	int unlabeled_count();
 	double rotation(int num);
 	void get_ball();
+	void get_ball2();
 	double ball_speed(int num);
 	double ball_position(int num);
 	double ball_timestamp();

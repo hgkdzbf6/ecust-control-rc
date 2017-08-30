@@ -28,7 +28,21 @@ void ViconUtils::get_unlabeled_marker(void){
 int ViconUtils::unlabeled_count(){
 	return unlabeledMarker.count;
 }
-
+void ViconUtils::get_ball2() {
+	MyClient.GetFrame();
+	unsigned int UnlabeledMarkerCount =
+			MyClient.GetUnlabeledMarkerCount().MarkerCount;
+	int i;
+	for (i = 0; i < UnlabeledMarkerCount; i++) {
+		UnlabeledMarkerOutput = MyClient.GetUnlabeledMarkerGlobalTranslation(i);
+		if (UnlabeledMarkerOutput.Translation[2] > BALL_MIN_HEIGHT) {
+			ballData.position[0] = UnlabeledMarkerOutput.Translation[0];
+			ballData.position[1] = UnlabeledMarkerOutput.Translation[1];
+			ballData.position[2] = UnlabeledMarkerOutput.Translation[2];
+			break;
+		}
+	}
+}
 void ViconUtils::get_ball(){
 	get_unlabeled_marker();
 	int i;
